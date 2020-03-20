@@ -15,6 +15,11 @@ func main() {
 	r.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		http.ServeFile(writer, request, frontend.FromFrontend("static", "index.html"))
 	})
+
+	r.HandleFunc("/icon", func(writer http.ResponseWriter, request *http.Request) {
+		http.ServeFile(writer, request, frontend.FromFrontend("static", "icon.ico"))
+	})
+
 	r.PathPrefix("/dist").Handler(http.StripPrefix("/dist", http.FileServer(http.Dir(frontend.FromFrontend("/dist")))))
 	srv := &http.Server{
 		Handler: r,
