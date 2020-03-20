@@ -4,20 +4,19 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"onlineboard/src/frontend"
 	"time"
 )
 
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		_, err := writer.Write([]byte("Hello web-server!"))
-		if err != nil {
-			log.Println("Error:", err)
-		}
+		http.ServeFile(writer, request, frontend.FromFrontend("static", "index.html"))
 	})
+	r.PathPrefix("/dist").Handler(http.StripPrefix("/dist", http.FileServer(http.Dir(frontend.FromFrontend("/dist")))))
 	srv := &http.Server{
 		Handler: r,
-		Addr:    "127.0.0.1:3000",
+		Addr:    "0.0.0.0:3000",
 		// Good practice: enforce timeouts for servers you create!
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,

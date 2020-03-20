@@ -17,3 +17,7 @@
 # IDE
 .vscode/
 .idea/
+
+# Frontend complie results
+frontend/dist/
+node_modules/
