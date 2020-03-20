@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"onlineboard/src/frontend"
@@ -21,5 +23,32 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
+	r.HandleFunc("/socket", makeEchoSocket(new(websocket.Upgrader)))
 	log.Fatal(srv.ListenAndServe())
+}
+
+func makeEchoSocket(upgrader *websocket.Upgrader) func(writer http.ResponseWriter, request *http.Request) {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		var err error
+		defer func() {
+			if err != nil {
+				log.Println("Websocket:", err)
+			}
+		}()
+		conn, err := upgrader.Upgrade(writer, request, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		for {
+			t, msg, err := conn.ReadMessage()
+			if err != nil {
+				return
+			}
+			fmt.Println(string(msg))
+			if err = conn.WriteMessage(t, msg); err != nil {
+				return
+			}
+		}
+	}
 }
