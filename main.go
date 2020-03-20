@@ -13,14 +13,10 @@ import (
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		http.ServeFile(writer, request, frontend.FromFrontend("static", "index.html"))
+		http.ServeFile(writer, request, frontend.From("static", "index.html"))
 	})
-
-	r.HandleFunc("/icon", func(writer http.ResponseWriter, request *http.Request) {
-		http.ServeFile(writer, request, frontend.FromFrontend("static", "icon.ico"))
-	})
-
-	r.PathPrefix("/dist").Handler(http.StripPrefix("/dist", http.FileServer(http.Dir(frontend.FromFrontend("/dist")))))
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static", makeStaticRouter()))
+	r.PathPrefix("/dist").Handler(http.StripPrefix("/dist", frontend.FileServer("/dist")))
 	srv := &http.Server{
 		Handler: r,
 		Addr:    "0.0.0.0:3000",
@@ -56,4 +52,11 @@ func makeEchoSocket(upgrader *websocket.Upgrader) func(writer http.ResponseWrite
 			}
 		}
 	}
+}
+
+func makeStaticRouter() *mux.Router {
+	r := mux.NewRouter()
+	r.Handle(`/{file:.+\.(?:ico|jpe?g|png|gif|bmp)}`, frontend.FileServer("assets", "images"))
+	r.Handle(`/{file:.+\.css}`, frontend.FileServer("assets", "styles"))
+	return r
 }

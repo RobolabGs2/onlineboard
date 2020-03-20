@@ -1,9 +1,16 @@
 package frontend
 
-import "path/filepath"
+import (
+	"net/http"
+	"path/filepath"
+)
 
 const frontendFolder = "frontend"
 
-func FromFrontend(partsOfPath ...string) string {
+func From(partsOfPath ...string) string {
 	return filepath.Join(append([]string{frontendFolder}, partsOfPath...)...)
+}
+
+func FileServer(partsOfPath ...string) http.Handler {
+	return http.FileServer(http.Dir(From(partsOfPath...)))
 }
