@@ -19,7 +19,7 @@ func main() {
 	r.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		http.ServeFile(writer, request, frontend.From("static", "index.html"))
 	})
-	r.HandleFunc("/desk/{id}", func(writer http.ResponseWriter, request *http.Request) {
+	r.HandleFunc("/board/{id}", func(writer http.ResponseWriter, request *http.Request) {
 		http.ServeFile(writer, request, frontend.From("static", "desk.html"))
 	})
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static", makeStaticRouter()))
@@ -36,6 +36,7 @@ func main() {
 
 	r.HandleFunc("/new", func(w http.ResponseWriter, r *http.Request) {
 		boardid := uuid.New().String()
+		wl.AddBoard(boardid)
 		http.Redirect(w, r, "/board/"+boardid, 303)
 	})
 
@@ -108,8 +109,9 @@ func (wl *WebsocketList) AddConnaction(conn *websocket.Conn, boardid string) (*l
 
 	board := wl.boards[boardid]
 
+	log.Println(wl.boards)
 	if board == nil {
-		return nil, fmt.Errorf("board not exist")
+		return nil, fmt.Errorf("board %s does not exist", boardid)
 	}
 	elem := board.connects.PushBack(conn)
 
