@@ -1,12 +1,39 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="ru">
 <head>
-    <title>Getting Started</title>
+    <meta charset="UTF-8">
     <link rel="icon" href="/static/icon.ico" type="image/x-icon">
-    <link rel="stylesheet" href="/static/main.css" type="text/css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+    <title>Onlineboard</title>
+    <style>
+        article {
+            display: flex;
+            flex-direction: column;
+            align-content: center;
+        }
+
+        article > * {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        body > article {
+            height: 100%;
+            justify-content: space-around;
+        }
+    </style>
 </head>
 <body>
-<script src="./dist/bundle.js"></script>
+<article>
+    <header>
+        Здесь можно найти онлайн доски с поддержкой математики
+    </header>
+    <p><a href="/new">Создать новую доску</a></p>
+    <section>
+        <p>Поделиться доской можно с помощью ссылки</p>
+    </section>
+    <section>
+        Поддерживаемые синтаксисы: <a href="https://katex.org/">KaTeX</a>
+    </section>
+</article>
 </body>
 </html>

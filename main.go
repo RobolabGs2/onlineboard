@@ -19,6 +19,9 @@ func main() {
 	r.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		http.ServeFile(writer, request, frontend.From("static", "index.html"))
 	})
+	r.HandleFunc("/desk/{id}", func(writer http.ResponseWriter, request *http.Request) {
+		http.ServeFile(writer, request, frontend.From("static", "desk.html"))
+	})
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static", makeStaticRouter()))
 	r.PathPrefix("/dist").Handler(http.StripPrefix("/dist", frontend.FileServer("/dist")))
 	srv := &http.Server{

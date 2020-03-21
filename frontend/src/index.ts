@@ -66,7 +66,8 @@ class InputField {
     }
 }
 
-let url = `ws://${window.location.host}/socket/0`;
+let path = window.location.pathname.split("/");
+let url = `ws://${window.location.host}/socket/${path.pop()}`;
 let socket = new WebSocket(url);
 const iii = new InputField(document.body).addEventListener("change", ev => {
     socket.send(JSON.stringify(ev.text));
