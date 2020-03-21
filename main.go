@@ -1,13 +1,16 @@
 package main
 
 import (
+	"container/list"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"onlineboard/src/frontend"
+	"sync"
 	"time"
+
+	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 )
 
 func main() {
@@ -28,11 +31,25 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
-	r.HandleFunc("/socket", makeEchoSocket(new(websocket.Upgrader)))
+
+	wl := new(WebsocketList).Init()
+
+	r.HandleFunc("/socket", wl.MakeEchoSocket())
 	log.Fatal(srv.ListenAndServe())
 }
 
-func makeEchoSocket(upgrader *websocket.Upgrader) func(writer http.ResponseWriter, request *http.Request) {
+type WebsocketList struct {
+	upgrader websocket.Upgrader
+	mutex    sync.Mutex
+	connects list.List
+}
+
+func (wl *WebsocketList) Init() *WebsocketList {
+	wl.connects.Init()
+	return wl
+}
+
+func (wl *WebsocketList) MakeEchoSocket() func(writer http.ResponseWriter, request *http.Request) {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		var err error
 		defer func() {
@@ -40,20 +57,56 @@ func makeEchoSocket(upgrader *websocket.Upgrader) func(writer http.ResponseWrite
 				log.Println("Websocket:", err)
 			}
 		}()
-		conn, err := upgrader.Upgrade(writer, request, nil)
+
+		conn, err := wl.upgrader.Upgrade(writer, request, nil)
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+
+		elem := wl.AddConnaction(conn)
+
+		defer func() {
+			wl.RemoveConnaction(elem)
+			conn.Close()
+		}()
+
 		for {
-			t, msg, err := conn.ReadMessage()
+			_, msg, err := conn.ReadMessage()
 			if err != nil {
 				return
 			}
 			fmt.Println(string(msg))
-			if err = conn.WriteMessage(t, msg); err != nil {
-				return
-			}
+
+			wl.SendMessages(msg)
 		}
 	}
+}
+
+func (wl *WebsocketList) AddConnaction(conn *websocket.Conn) *list.Element {
+	wl.mutex.Lock()
+	elem := wl.connects.PushBack(conn)
+	wl.mutex.Unlock()
+	return elem
+}
+
+func (wl *WebsocketList) RemoveConnaction(elem *list.Element) {
+	wl.mutex.Lock()
+	wl.connects.Remove(elem)
+	wl.mutex.Unlock()
+}
+
+func (wl *WebsocketList) SendMessages(msg []uint8) {
+	wl.mutex.Lock()
+	for e := wl.connects.Front(); e != nil; e = e.Next() {
+		wl.mutex.Unlock()
+		switch val := e.Value.(type) {
+		case *websocket.Conn:
+			err := val.WriteMessage(websocket.TextMessage, msg)
+			if err != nil {
+				fmt.Println("Bad socket in the list!!")
+			}
+		}
+		wl.mutex.Lock()
+	}
+	wl.mutex.Unlock()
 }
