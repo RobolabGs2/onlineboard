@@ -1,11 +1,47 @@
+import * as katex from 'katex';
+
 class ChangeEvent {
     constructor(public readonly text: string | any) {
+    }
+}
+
+interface RenderEngine {
+    render(text: string, where: HTMLElement): void;
+}
+
+class KaTeXRender implements RenderEngine{
+    render(text: string, where: HTMLElement): void {
+        katex.render(text, where, {
+            output: "html", throwOnError: false,
+        });
+    }
+}
+
+class OutField {
+    private _renderer: RenderEngine;
+    private _value: string;
+    private readonly outputContainer: HTMLElement;
+    constructor(parentNode: HTMLElement, render: RenderEngine = new KaTeXRender()) {
+        this._renderer = render;
+        parentNode.appendChild(this.outputContainer = document.createElement('article'));
+    }
+    set engine(render: RenderEngine) {
+        this._renderer = render;
+        this.render();
+    }
+    set value(text: string) {
+        this._value = text;
+        this.render();
+    }
+    private render() {
+        this._renderer.render(this._value, this.outputContainer);
     }
 }
 
 interface InputFiledEventMap {
     "change": ChangeEvent
 }
+
 
 class InputField {
     private readonly elem: HTMLTextAreaElement;
@@ -16,7 +52,9 @@ class InputField {
             console.log(ev);
             this.onchange.forEach(x => x.bind(this)(new ChangeEvent(this.elem.value)));
         });
-        parent.appendChild(this.elem)
+        let art = document.createElement('article');
+        art.appendChild(this.elem);
+        parent.appendChild(art)
     }
     addEventListener<K extends keyof InputFiledEventMap>(type: K, listener: (this: this, ev: InputFiledEventMap[K]) => void): number {
         switch (type) {
@@ -26,13 +64,6 @@ class InputField {
                 throw `${type} cannot listen for InputField`;
         }
     }
-}
-
-function component(text: string) {
-    const element = document.createElement('textarea');
-    element.disabled = true;
-    element.innerHTML = text;
-    return element;
 }
 
 let url = `ws://${window.location.host}/socket`;
@@ -45,10 +76,9 @@ socket.addEventListener("open", function (e) {
     console.log("[open] Соединение установлено");
 });
 
-let output = component(url);
-document.body.appendChild(output);
+let output = new OutField(document.body);
 socket.addEventListener("message", function (event) {
-    output.innerText = event.data;
+    output.value = JSON.parse(event.data);
 });
 
 socket.addEventListener("close", function (event) {

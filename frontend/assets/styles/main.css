@@ -1,11 +1,34 @@
+article {
+    flex: 1;
+    background-color: #154336;
+    color: white;
+    height: 95%;
+    padding: 8px;
+    margin: 4px;
+    border: inset 8px;
+     /*TODO*/
+    overflow-x: scroll;
+    overflow-y: hidden;
+}
+
 textarea {
     background-color: #154336;
     color: white;
-    width: 50%;
+    width: 100%;
+    height: 100%;
+    font-size: large;
+    padding: 0;
+    margin: 0;
+    border: none;
+    overflow-y: hidden;
+}
+
+html, body {
+    padding: 0;
+    margin: 0;
     height: 100%;
 }
 
 body {
     display: flex;
-    height: 100vh;
 }
