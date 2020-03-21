@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
@@ -29,6 +30,11 @@ func main() {
 	}
 
 	wl := new(WebsocketList).Init()
+
+	r.HandleFunc("/new", func(w http.ResponseWriter, r *http.Request) {
+		boardid := uuid.New().String()
+		http.Redirect(w, r, "/board/"+boardid, 303)
+	})
 
 	r.HandleFunc("/socket/{boardid}", wl.MakeEchoSocket())
 	log.Fatal(srv.ListenAndServe())
@@ -70,13 +76,13 @@ func (wl *WebsocketList) MakeEchoSocket() func(writer http.ResponseWriter, reque
 		if err != nil {
 			return
 		}
+		defer conn.Close()
 
-		elem := wl.AddConnaction(conn, boardid)
-
-		defer func() {
-			wl.RemoveConnaction(elem, boardid)
-			conn.Close()
-		}()
+		elem, err := wl.AddConnaction(conn, boardid)
+		if err != nil {
+			return
+		}
+		defer wl.RemoveConnaction(elem, boardid)
 
 		for {
 			_, msg, err := conn.ReadMessage()
@@ -90,20 +96,23 @@ func (wl *WebsocketList) MakeEchoSocket() func(writer http.ResponseWriter, reque
 	}
 }
 
-func (wl *WebsocketList) AddConnaction(conn *websocket.Conn, boardid string) *list.Element {
+func (wl *WebsocketList) AddBoard(boardid string) {
+	wl.boards[boardid] = new(OnlineBoard).Init()
+}
+
+func (wl *WebsocketList) AddConnaction(conn *websocket.Conn, boardid string) (*list.Element, error) {
 	wl.mutex.Lock()
 
 	board := wl.boards[boardid]
 
 	if board == nil {
-		board = new(OnlineBoard).Init()
-		wl.boards[boardid] = board
+		return nil, fmt.Errorf("board not exist")
 	}
 	elem := board.connects.PushBack(conn)
 
 	wl.mutex.Unlock()
 
-	return elem
+	return elem, nil
 }
 
 func (wl *WebsocketList) RemoveConnaction(elem *list.Element, boardid string) {
