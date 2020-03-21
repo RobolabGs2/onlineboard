@@ -1,0 +1,11 @@
+textarea {
+    background-color: #154336;
+    color: white;
+    width: 50%;
+    height: 100%;
+}
+
+body {
+    display: flex;
+    height: 100vh;
+}
