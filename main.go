@@ -30,18 +30,28 @@ func main() {
 
 	wl := new(WebsocketList).Init()
 
-	r.HandleFunc("/socket", wl.MakeEchoSocket())
+	r.HandleFunc("/socket/{boardid}", wl.MakeEchoSocket())
 	log.Fatal(srv.ListenAndServe())
+}
+
+type OnlineBoard struct {
+	data     []uint8
+	connects list.List
+}
+
+func (ob *OnlineBoard) Init() *OnlineBoard {
+	ob.connects.Init()
+	return ob
 }
 
 type WebsocketList struct {
 	upgrader websocket.Upgrader
 	mutex    sync.Mutex
-	connects list.List
+	boards   map[string]*OnlineBoard
 }
 
 func (wl *WebsocketList) Init() *WebsocketList {
-	wl.connects.Init()
+	wl.boards = make(map[string]*OnlineBoard)
 	return wl
 }
 
@@ -54,15 +64,17 @@ func (wl *WebsocketList) MakeEchoSocket() func(writer http.ResponseWriter, reque
 			}
 		}()
 
+		boardid := mux.Vars(request)["boardid"]
+
 		conn, err := wl.upgrader.Upgrade(writer, request, nil)
 		if err != nil {
 			return
 		}
 
-		elem := wl.AddConnaction(conn)
+		elem := wl.AddConnaction(conn, boardid)
 
 		defer func() {
-			wl.RemoveConnaction(elem)
+			wl.RemoveConnaction(elem, boardid)
 			conn.Close()
 		}()
 
@@ -73,36 +85,49 @@ func (wl *WebsocketList) MakeEchoSocket() func(writer http.ResponseWriter, reque
 			}
 			fmt.Println(string(msg))
 
-			wl.SendMessages(msg)
+			wl.SendMessages(boardid, msg)
 		}
 	}
 }
 
-func (wl *WebsocketList) AddConnaction(conn *websocket.Conn) *list.Element {
+func (wl *WebsocketList) AddConnaction(conn *websocket.Conn, boardid string) *list.Element {
 	wl.mutex.Lock()
-	elem := wl.connects.PushBack(conn)
+
+	board := wl.boards[boardid]
+
+	if board == nil {
+		board = new(OnlineBoard).Init()
+		wl.boards[boardid] = board
+	}
+	elem := board.connects.PushBack(conn)
+
 	wl.mutex.Unlock()
+
 	return elem
 }
 
-func (wl *WebsocketList) RemoveConnaction(elem *list.Element) {
+func (wl *WebsocketList) RemoveConnaction(elem *list.Element, boardid string) {
 	wl.mutex.Lock()
-	wl.connects.Remove(elem)
+	wl.boards[boardid].connects.Remove(elem)
 	wl.mutex.Unlock()
 }
 
-func (wl *WebsocketList) SendMessages(msg []uint8) {
+func (wl *WebsocketList) ChangeBoard(boardid string, newvalue []uint8) []uint8 {
+	wl.boards[boardid].data = newvalue
+	return newvalue
+}
+
+func (wl *WebsocketList) SendMessages(boardid string, msg []uint8) {
 	wl.mutex.Lock()
-	for e := wl.connects.Front(); e != nil; e = e.Next() {
-		wl.mutex.Unlock()
+	newmsg := wl.ChangeBoard(boardid, msg)
+	for e := wl.boards[boardid].connects.Front(); e != nil; e = e.Next() {
 		switch val := e.Value.(type) {
 		case *websocket.Conn:
-			err := val.WriteMessage(websocket.TextMessage, msg)
+			err := val.WriteMessage(websocket.TextMessage, newmsg)
 			if err != nil {
 				fmt.Println("Bad socket in the list!!")
 			}
 		}
-		wl.mutex.Lock()
 	}
 	wl.mutex.Unlock()
 }
