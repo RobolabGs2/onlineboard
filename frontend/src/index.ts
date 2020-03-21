@@ -1,85 +1,90 @@
-import * as katex from 'katex';
+import {InputField, OutField} from "./fields";
 
-class ChangeEvent {
-    constructor(public readonly text: string | any) {
+type LanguageType = 'katex' | 'markdown' | 'plain'
+
+class BoardSnapshot {
+    constructor(readonly value: string = "\KaTeX",
+                readonly type: LanguageType = 'katex',
+                readonly timestamp = Date.now()) {
     }
 }
 
-interface RenderEngine {
-    render(text: string, where: HTMLElement): void;
+class NumberBoardData {
+    constructor(readonly id: number, readonly data: BoardSnapshot) {
+    }
 }
 
-class KaTeXRender implements RenderEngine{
-    render(text: string, where: HTMLElement): void {
-        katex.render(text, where, {
-            output: "html", throwOnError: false,
+class Board {
+    private out: OutField;
+    private input: InputField;
+    private lastState = 0;
+
+    constructor(parent: HTMLElement, onchange: (data: BoardSnapshot) => void) {
+        const main = document.createElement('article');
+        main.classList.add("board");
+        this.input = new InputField(main);
+        this.out = new OutField(main);
+        this.input.addEventListener('change', ev => {
+            let snapshot = new BoardSnapshot(ev.text);
+            this.lastState = snapshot.timestamp;
+            onchange(snapshot)
         });
+        parent.appendChild(main);
+    }
+
+    set data(data: BoardSnapshot) {
+        if (data.timestamp < this.lastState)
+            return;
+        this.input.value = this.out.value = data.value;
+        this.lastState = data.timestamp;
     }
 }
 
-class OutField {
-    private _renderer: RenderEngine;
-    private _value: string;
-    private readonly outputContainer: HTMLElement;
-    constructor(parentNode: HTMLElement, render: RenderEngine = new KaTeXRender()) {
-        this._renderer = render;
-        parentNode.appendChild(this.outputContainer = document.createElement('article'));
-    }
-    set engine(render: RenderEngine) {
-        this._renderer = render;
-        this.render();
-    }
-    set value(text: string) {
-        this._value = text;
-        this.render();
-    }
-    private render() {
-        this._renderer.render(this._value, this.outputContainer);
-    }
-}
+class MultiBoard {
+    private boards = new Array<Board>();
+    private root: HTMLElement;
 
-interface InputFiledEventMap {
-    "change": ChangeEvent
-}
-
-
-class InputField {
-    private readonly elem: HTMLTextAreaElement;
-    private onchange = new Array<(this: this, ev: ChangeEvent) => void>();
-    constructor(parent: HTMLElement) {
-        this.elem = document.createElement('textarea');
-        this.elem.addEventListener("input", ev => {
-            console.log(ev);
-            this.onchange.forEach(x => x.bind(this)(new ChangeEvent(this.elem.value)));
-        });
-        let art = document.createElement('article');
-        art.appendChild(this.elem);
-        parent.appendChild(art)
+    constructor(parentElem: HTMLElement) {
+        this.root = document.createElement('article');
+        this.addBoard(0);
+        parentElem.appendChild(this.root);
+        parentElem.addEventListener("keydown", ev => {
+            if (ev.ctrlKey) {
+                if (ev.key === "Enter") {
+                    this.addBoard(this.boards.length)
+                }
+            }
+        })
     }
-    addEventListener<K extends keyof InputFiledEventMap>(type: K, listener: (this: this, ev: InputFiledEventMap[K]) => void): number {
-        switch (type) {
-            case "change":
-                return this.onchange.push(listener) - 1;
-            default:
-                throw `${type} cannot listen for InputField`;
+
+    private addBoard(id: number) {
+        this.boards.push(new Board(this.root, data => {
+            socket.send(JSON.stringify(new NumberBoardData(id, data)));
+        }))
+    }
+
+    update(data: NumberBoardData) {
+        let board = this.boards[data.id];
+        if (board) {
+            board.data = data.data;
+            return;
         }
+        this.addBoard(data.id);
+        this.update(data);
     }
 }
 
 let path = window.location.pathname.split("/");
 let url = `ws://${window.location.host}/socket/${path.pop()}`;
 let socket = new WebSocket(url);
-const iii = new InputField(document.body).addEventListener("change", ev => {
-    socket.send(JSON.stringify(ev.text));
-});
+const board = new MultiBoard(document.body);
 
 socket.addEventListener("open", function (e) {
     console.log("[open] Соединение установлено");
 });
 
-let output = new OutField(document.body);
 socket.addEventListener("message", function (event) {
-    output.value = JSON.parse(event.data);
+    board.update(JSON.parse(event.data));
 });
 
 socket.addEventListener("close", function (event) {
