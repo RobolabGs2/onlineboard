@@ -1,7 +1,11 @@
-div {
+textarea {
+    background-color: #154336;
     color: white;
+    width: 50%;
+    height: 100%;
 }
 
 body {
-    background-color: #154336;
+    display: flex;
+    height: 100vh;
 }
