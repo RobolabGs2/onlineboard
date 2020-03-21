@@ -45,6 +45,7 @@ func main() {
 }
 
 type OnlineBoard struct {
+	mutex    sync.Mutex
 	data     []uint8
 	connects list.List
 }
@@ -52,6 +53,39 @@ type OnlineBoard struct {
 func (ob *OnlineBoard) Init() *OnlineBoard {
 	ob.connects.Init()
 	return ob
+}
+
+func (ob *OnlineBoard) AddConnaction(conn *websocket.Conn) *list.Element {
+	ob.mutex.Lock()
+	elem := ob.connects.PushBack(conn)
+	ob.mutex.Unlock()
+	return elem
+}
+
+func (ob *OnlineBoard) RemoveConnaction(elem *list.Element, boardid string) {
+	ob.mutex.Lock()
+	ob.connects.Remove(elem)
+	ob.mutex.Unlock()
+}
+
+func (ob *OnlineBoard) Change(newvalue []uint8) []uint8 {
+	ob.data = newvalue
+	return newvalue
+}
+
+func (ob *OnlineBoard) SendMessages(msg []uint8) {
+	ob.mutex.Lock()
+	newmsg := ob.Change(msg)
+	for e := ob.connects.Front(); e != nil; e = e.Next() {
+		switch val := e.Value.(type) {
+		case *websocket.Conn:
+			err := val.WriteMessage(websocket.TextMessage, newmsg)
+			if err != nil {
+				fmt.Println("Bad socket in the list!!")
+			}
+		}
+	}
+	ob.mutex.Unlock()
 }
 
 type WebsocketList struct {
@@ -82,11 +116,11 @@ func (wl *WebsocketList) MakeEchoSocket() func(writer http.ResponseWriter, reque
 		}
 		defer conn.Close()
 
-		elem, err := wl.AddConnaction(conn, boardid)
+		elem, board, err := wl.AddConnaction(conn, boardid)
 		if err != nil {
 			return
 		}
-		defer wl.RemoveConnaction(elem, boardid)
+		defer board.RemoveConnaction(elem, boardid)
 
 		for {
 			_, msg, err := conn.ReadMessage()
@@ -95,55 +129,30 @@ func (wl *WebsocketList) MakeEchoSocket() func(writer http.ResponseWriter, reque
 			}
 			fmt.Println(string(msg))
 
-			wl.SendMessages(boardid, msg)
+			board.SendMessages(msg)
 		}
 	}
 }
 
 func (wl *WebsocketList) AddBoard(boardid string) {
+	wl.mutex.Lock()
 	wl.boards[boardid] = new(OnlineBoard).Init()
+	wl.mutex.Unlock()
 }
 
-func (wl *WebsocketList) AddConnaction(conn *websocket.Conn, boardid string) (*list.Element, error) {
-	wl.mutex.Lock()
+func (wl *WebsocketList) AddConnaction(conn *websocket.Conn, boardid string) (*list.Element, *OnlineBoard, error) {
 
+	wl.mutex.Lock()
 	board := wl.boards[boardid]
+	wl.mutex.Unlock()
 
-	log.Println(wl.boards)
 	if board == nil {
-		return nil, fmt.Errorf("board %s does not exist", boardid)
+		return nil, nil, fmt.Errorf("board %s does not exist", boardid)
 	}
-	elem := board.connects.PushBack(conn)
 
-	wl.mutex.Unlock()
+	elem := board.AddConnaction(conn)
 
-	return elem, nil
-}
-
-func (wl *WebsocketList) RemoveConnaction(elem *list.Element, boardid string) {
-	wl.mutex.Lock()
-	wl.boards[boardid].connects.Remove(elem)
-	wl.mutex.Unlock()
-}
-
-func (wl *WebsocketList) ChangeBoard(boardid string, newvalue []uint8) []uint8 {
-	wl.boards[boardid].data = newvalue
-	return newvalue
-}
-
-func (wl *WebsocketList) SendMessages(boardid string, msg []uint8) {
-	wl.mutex.Lock()
-	newmsg := wl.ChangeBoard(boardid, msg)
-	for e := wl.boards[boardid].connects.Front(); e != nil; e = e.Next() {
-		switch val := e.Value.(type) {
-		case *websocket.Conn:
-			err := val.WriteMessage(websocket.TextMessage, newmsg)
-			if err != nil {
-				fmt.Println("Bad socket in the list!!")
-			}
-		}
-	}
-	wl.mutex.Unlock()
+	return elem, board, nil
 }
 
 func makeStaticRouter() *mux.Router {
