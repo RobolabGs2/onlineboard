@@ -2,6 +2,8 @@ html, body {
     padding: 0;
     margin: 0;
     height: 100%;
+    background-color: #33343D;
+    color: #DAD7DD
 }
 
 .board {
@@ -11,8 +13,8 @@ html, body {
 }
 
 .board-layout {
-    background-color: black/*#154336*/;
-    color: white;
+    background-color: #131416/*#154336*/;
+    color: #DAD7DD;
 }
 
 .board article {
@@ -20,7 +22,7 @@ html, body {
     padding: 8px;
     margin: 2px;
     /*TODO*/
-    overflow-x: scroll;
+    /* overflow-x: scroll; */
     overflow-y: hidden;
 }
 
@@ -36,4 +38,18 @@ textarea {
 
 .plaintext-render {
     font-size: large;
+}
+
+button{
+    background-color: #131416;
+    border: none;
+    color: #DAD7DD;
+    padding: 5px 10px;
+}
+
+select{
+    background-color: #131416; 
+    border: none;
+    color: #DAD7DD;
+    padding: 5px 10px;
 }
