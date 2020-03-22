@@ -25,7 +25,7 @@ type Board struct {
 func (board *Board) Init() *Board {
 	board.connects.Init()
 	board.lines = make(map[string]*Line)
-	board.lines[string(0)] = &Line{Id: string(0), Number: 0} //	TODO
+	board.lines[""] = &Line{Id: "", Number: 0}
 	return board
 }
 

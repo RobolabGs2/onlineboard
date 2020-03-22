@@ -24,8 +24,8 @@ type BoardList struct {
 }
 
 type InputMessage struct {
-	Lineid int             `json:"id"`   //	TODO
-	Value  json.RawMessage `json:"data"` //	TODO
+	Lineid string          `json:"id"`
+	Value  json.RawMessage `json:"value"`
 }
 
 func (bl *BoardList) Init() *BoardList {

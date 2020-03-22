@@ -13,7 +13,7 @@ import (
 )
 
 type CreateMessage struct {
-	Parent int             `json:"parent"` //	TODO
+	Parent string          `json:"parent"`
 	Value  json.RawMessage `json:"value"`
 }
 
@@ -46,8 +46,7 @@ func main() {
 		http.Redirect(w, r, "/board/"+boardid, 303)
 	})
 
-	//	TODO
-	r.HandleFunc("/socket/{boardid}", bl.MakeEchoSocket())
+	r.HandleFunc("/board/{boardid}/socket", bl.MakeEchoSocket())
 
 	r.Methods("POST").Path("/board/{boardid}/line").HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
