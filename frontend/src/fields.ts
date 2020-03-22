@@ -1,56 +1,10 @@
-import * as katex from "katex";
-import AsciiMathParser from '../lib/asciimath2tex';
+import {KaTeXRender, RenderEngine} from "./render";
 
 class ChangeEvent {
     constructor(public readonly text: string | any) {
     }
 }
 
-export interface RenderEngine {
-    render(text: string, where: HTMLElement): void;
-}
-
-
-export class ASCIIMathRender implements RenderEngine {
-    private translate = new AsciiMathParser();
-    // TODO: use MathJax
-    private renderer = new KaTeXRender();
-    render(text: string, where: HTMLElement): void {
-        this.renderer.render(this.translate.parse(text), where);
-    }
-}
-
-function escape(text: string) {
-    const htmlEscapes = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-    };
-    return text.replace(/[&<>"']/g, function(match) {
-        // @ts-ignore
-        return htmlEscapes[match];
-    });
-}
-
-export class PlainRender implements RenderEngine{
-    render(text: string, where: HTMLElement): void {
-        const output = document.createElement('pre');
-        output.classList.add('plaintext-render');
-        output.innerText = escape(text);
-        where.innerHTML = "";
-        where.append(output)
-    }
-}
-
-export class KaTeXRender implements RenderEngine {
-    render(text: string, where: HTMLElement): void {
-        katex.render(text, where, {
-            output: "html", throwOnError: false,
-        });
-    }
-}
 
 export class OutField {
     private _renderer: RenderEngine;
