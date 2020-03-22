@@ -1,8 +1,11 @@
 import {Board} from "./board";
 
-const url = `ws://${window.location.host}/socket/${window.location.pathname.split("/").pop()}`;
+let boardId = window.location.pathname.split("/").pop();
+if (!boardId)
+    throw 'Impossible';
+const url = `ws://${window.location.host}/board/${boardId}/socket`;
 const socket = new WebSocket(url);
-const board = new Board(document.body);
+const board = new Board(document.body, boardId);
 
 socket.addEventListener("open", function (e) {
     console.log("[open] Соединение установлено", e);
