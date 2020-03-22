@@ -2,6 +2,7 @@ package boardlist
 
 import (
 	"container/list"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,6 +21,11 @@ type BoardList struct {
 	upgrader websocket.Upgrader
 	mutex    sync.Mutex
 	boards   map[string]*Board
+}
+
+type InputMessage struct {
+	Lineid int             `json:"id"`   //	TODO
+	Value  json.RawMessage `json:"data"` //	TODO
 }
 
 func (bl *BoardList) Init() *BoardList {
@@ -56,8 +62,14 @@ func (bl *BoardList) MakeEchoSocket() func(writer http.ResponseWriter, request *
 				return
 			}
 			fmt.Println(string(msg))
+			var msgdata InputMessage
+			err = json.Unmarshal(msg, &msgdata)
 
-			board.SendMessages(msg)
+			if err == nil {
+				board.WriteMessages(string(msgdata.Lineid), msgdata.Value)
+			} else {
+				fmt.Println(err)
+			}
 		}
 	}
 }
@@ -68,6 +80,30 @@ func (bl *BoardList) CreateBoard() string {
 	bl.boards[boardid] = new(Board).Init()
 	bl.mutex.Unlock()
 	return boardid
+}
+
+func (bl *BoardList) CreateLine(boardid string, parentid string, value json.RawMessage) (string, error) {
+	bl.mutex.Lock()
+	board := bl.boards[boardid]
+	bl.mutex.Unlock()
+
+	if board == nil {
+		return "", fmt.Errorf("board %s does not exist", boardid)
+	}
+
+	return board.CreateLine(parentid, value)
+}
+
+func (bl *BoardList) DeleteLine(boardid string, lineid string) error {
+	bl.mutex.Lock()
+	board := bl.boards[boardid]
+	bl.mutex.Unlock()
+
+	if board == nil {
+		return fmt.Errorf("board %s does not exist", boardid)
+	}
+
+	return board.DeleteLine(lineid)
 }
 
 func (bl *BoardList) AddConnaction(conn *websocket.Conn, boardid string) (*list.Element, *Board, error) {

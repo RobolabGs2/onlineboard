@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"onlineboard/src/boardlist"
@@ -9,6 +11,15 @@ import (
 
 	"github.com/gorilla/mux"
 )
+
+type CreateMessage struct {
+	Parent int             `json:"parent"` //	TODO
+	Value  json.RawMessage `json:"value"`
+}
+
+type MoveMessage struct {
+	Parent string `json:"parent"`
+}
 
 func main() {
 	r := mux.NewRouter()
@@ -35,7 +46,51 @@ func main() {
 		http.Redirect(w, r, "/board/"+boardid, 303)
 	})
 
+	//	TODO
 	r.HandleFunc("/socket/{boardid}", bl.MakeEchoSocket())
+
+	r.Methods("POST").Path("/board/{boardid}/line").HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			b, err := ioutil.ReadAll(r.Body)
+			defer r.Body.Close()
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+
+			var msg CreateMessage
+			err = json.Unmarshal(b, &msg)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+
+			log.Println(msg)
+
+			output, err := bl.CreateLine(mux.Vars(r)["boardid"], string(msg.Parent), msg.Value)
+
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+
+			w.Write([]byte(output))
+		})
+
+	r.Methods("DELETE").Path("/board/{boardid}/line/{lineid}").HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+
+			mapa := mux.Vars(r)
+			boardid := mapa["boardid"]
+			lineid := mapa["lineid"]
+			err := bl.DeleteLine(boardid, lineid)
+
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+		})
+
 	log.Fatal(srv.ListenAndServe())
 }
 
