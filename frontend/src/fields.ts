@@ -1,12 +1,23 @@
 import * as katex from "katex";
+import AsciiMathParser from '../lib/asciimath2tex';
 
 class ChangeEvent {
     constructor(public readonly text: string | any) {
     }
 }
 
-interface RenderEngine {
+export interface RenderEngine {
     render(text: string, where: HTMLElement): void;
+}
+
+
+export class ASCIIMathRender implements RenderEngine {
+    private translate = new AsciiMathParser();
+    // TODO: use MathJax
+    private renderer = new KaTeXRender();
+    render(text: string, where: HTMLElement): void {
+        this.renderer.render(this.translate.parse(text), where);
+    }
 }
 
 function escape(text: string) {
@@ -21,15 +32,19 @@ function escape(text: string) {
         // @ts-ignore
         return htmlEscapes[match];
     });
-};
+}
 
-class PlainRender implements RenderEngine{
+export class PlainRender implements RenderEngine{
     render(text: string, where: HTMLElement): void {
-        where.innerText = escape(text);
+        const output = document.createElement('pre');
+        output.classList.add('plaintext-render');
+        output.innerText = escape(text);
+        where.innerHTML = "";
+        where.append(output)
     }
 }
 
-class KaTeXRender implements RenderEngine {
+export class KaTeXRender implements RenderEngine {
     render(text: string, where: HTMLElement): void {
         katex.render(text, where, {
             output: "html", throwOnError: false,
@@ -39,23 +54,33 @@ class KaTeXRender implements RenderEngine {
 
 export class OutField {
     private _renderer: RenderEngine;
-    private _value: string;
+    private _value: string = "";
     private readonly outputContainer: HTMLElement;
-
+    private changed = false;
     constructor(parentNode: HTMLElement, render: RenderEngine = new KaTeXRender()) {
         this._renderer = render;
         parentNode.appendChild(this.outputContainer = document.createElement('article'));
         this.outputContainer.classList.add('board-layout');
+        setInterval(() => {
+            if (!this.changed)
+                return;
+            this.changed = false;
+            this.render();
+        }, 1000/40);
     }
 
     set engine(render: RenderEngine) {
+        if (this._renderer === render)
+            return;
+        this.changed = true;
         this._renderer = render;
-        this.render();
     }
 
     set value(text: string) {
+        if (this._value === text)
+            return;
         this._value = text;
-        this.render();
+        this.changed = true;
     }
 
     private render() {
@@ -70,18 +95,17 @@ interface InputFiledEventMap {
 export class InputField {
     private readonly elem: HTMLTextAreaElement;
     private onchange = new Array<(this: this, ev: ChangeEvent) => void>();
-
+    private readonly rootElem: HTMLElement;
     constructor(parent: HTMLElement) {
         this.elem = document.createElement('textarea');
         this.elem.classList.add('board-layout');
-        this.elem.addEventListener("input", ev => {
-            console.log(ev);
-            this.onchange.forEach(x => x.bind(this)(new ChangeEvent(this.elem.value)));
+        this.elem.addEventListener("input", _ => {
+            this.onchange.forEach(x => x.call(this, new ChangeEvent(this.elem.value)));
         });
-        let art = document.createElement('article');
-        art.classList.add('board-layout');
-        art.appendChild(this.elem);
-        parent.appendChild(art)
+        this.rootElem = document.createElement('article');
+        this.rootElem.classList.add('board-layout');
+        this.rootElem.appendChild(this.elem);
+        parent.appendChild(this.rootElem)
     }
 
     addEventListener<K extends keyof InputFiledEventMap>(type: K, listener: (this: this, ev: InputFiledEventMap[K]) => void): number {
@@ -94,5 +118,11 @@ export class InputField {
     }
     set value(text: string) {
         this.elem.value = text;
+    }
+    get value(): string{
+        return this.elem.value
+    }
+    set visible(visible: boolean) {
+        this.rootElem.style.display = visible ? "" : "none";
     }
 }

@@ -1,16 +1,66 @@
-import {InputField, OutField} from "./fields";
+import {InputField, OutField, KaTeXRender, PlainRender, ASCIIMathRender} from "./fields";
 
-type LanguageType = 'katex' | 'markdown' | 'plain'
+const LanguageRenders = {
+    'katex': new KaTeXRender(),
+    'plain': new PlainRender(),
+    'asciimath': new ASCIIMathRender(),
+};
 
-class BoardSnapshot {
-    constructor(readonly value: string = "\KaTeX",
-                readonly type: LanguageType = 'katex',
+type LanguageType = keyof typeof LanguageRenders;
+
+class LineSnapshot {
+    constructor(readonly value?: string,
+                readonly type?: LanguageType,
                 readonly timestamp = Date.now()) {
     }
 }
 
 class NumberBoardData {
-    constructor(readonly id: number, readonly data: BoardSnapshot) {
+    constructor(readonly id: number, readonly data: LineSnapshot) {
+    }
+}
+
+class LineControls {
+    private readonly typeElement: HTMLSelectElement;
+    constructor(parent: HTMLElement,
+                editable: (editable: boolean)=> boolean,
+                render: (engine: LanguageType)=>void) {
+        const main = document.createElement('article');
+        main.classList.add('board-controls');
+        const edit = document.createElement('button');
+        edit.textContent = "Редактировать";
+        let editState = false;
+        editable(editState);
+        edit.addEventListener('click', _ => {
+            editState = editable(editState = !editState);
+            if (editState) {
+                edit.textContent = "Перестать редактировать";
+            } else {
+                edit.textContent = "Редактировать";
+            }
+        });
+        this.typeElement = document.createElement('select');
+        for (let render in LanguageRenders) {
+            this.typeElement.add(new Option(render, render));
+        }
+        this.typeElement.addEventListener("change", _ => {
+            render(this.type);
+        });
+        main.append(edit, this.typeElement);
+        parent.append(main);
+    }
+    set type(type: LanguageType) {
+        const opts = this.typeElement.options;
+        for (let opt, j = 0; opt = opts[j]; j++) {
+            if (opt.value == type) {
+                this.typeElement.options.selectedIndex = j;
+                return;
+            }
+        }
+        alert(`Неизвестный тип рендера ${type}. Попробуйте перезагрузить страницу.`)
+    }
+    get type(): LanguageType {
+        return this.typeElement.options[this.typeElement.selectedIndex].text as LanguageType;
     }
 }
 
@@ -18,32 +68,49 @@ class Board {
     private out: OutField;
     private input: InputField;
     private lastState = 0;
-
-    constructor(parent: HTMLElement, onchange: (data: BoardSnapshot) => void) {
+    private controls: LineControls;
+    constructor(parent: HTMLElement, onchange: () => void) {
         const main = document.createElement('article');
-        main.classList.add("board");
-        this.input = new InputField(main);
-        this.out = new OutField(main);
+        const header = document.createElement('header');
+        const section = document.createElement('section');
+        main.append(header, section);
+        section.classList.add("board");
+        this.input = new InputField(section);
+        this.out = new OutField(section);
         this.input.addEventListener('change', ev => {
-            let snapshot = new BoardSnapshot(ev.text);
-            this.lastState = snapshot.timestamp;
-            onchange(snapshot)
+            this.out.value = ev.text;
+            onchange()
+        });
+        this.controls = new LineControls(header, editable => {
+            this.input.visible = editable;
+            return editable;
+        }, language => {
+            this.out.engine = LanguageRenders[language];
+            onchange();
         });
         parent.appendChild(main);
     }
 
-    set data(data: BoardSnapshot) {
-        if (data.timestamp < this.lastState)
+    set data(data: LineSnapshot) {
+        if (data.timestamp <= this.lastState)
             return;
-        this.input.value = this.out.value = data.value;
+        if (data.type) {
+            this.out.engine = LanguageRenders[data.type];
+            this.controls.type = data.type;
+        }
+        if (data.value)
+            this.input.value = this.out.value = data.value;
         this.lastState = data.timestamp;
+    }
+    get data(): LineSnapshot {
+        return new LineSnapshot(this.input.value, this.controls.type)
     }
 }
 
 class MultiBoard {
     private boards = new Array<Board>();
-    private root: HTMLElement;
-
+    private readonly root: HTMLElement;
+    private modified = new Set<number>();
     constructor(parentElem: HTMLElement) {
         this.root = document.createElement('article');
         this.addBoard(0);
@@ -54,13 +121,20 @@ class MultiBoard {
                     this.addBoard(this.boards.length)
                 }
             }
-        })
+        });
+        setInterval(() => {
+            if (this.modified.size === 0)
+                return;
+            this.modified.forEach(
+                i => socket.send(JSON.stringify(new NumberBoardData(i, this.boards[i].data))));
+            this.modified.clear();
+        }, 1000/40);
     }
 
     private addBoard(id: number) {
-        this.boards.push(new Board(this.root, data => {
-            socket.send(JSON.stringify(new NumberBoardData(id, data)));
-        }))
+        this.boards[id] = new Board(this.root, () => {
+            this.modified.add(id)
+        })
     }
 
     update(data: NumberBoardData) {
@@ -80,7 +154,7 @@ let socket = new WebSocket(url);
 const board = new MultiBoard(document.body);
 
 socket.addEventListener("open", function (e) {
-    console.log("[open] Соединение установлено");
+    console.log("[open] Соединение установлено", e);
 });
 
 socket.addEventListener("message", function (event) {

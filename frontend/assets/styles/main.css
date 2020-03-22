@@ -7,18 +7,18 @@ html, body {
 .board {
     display: flex;
     height: 100%;
+    min-height: 128px;
 }
 
 .board-layout {
-    background-color: #154336;
+    background-color: black/*#154336*/;
     color: white;
 }
 
 .board article {
     flex: 1;
     padding: 8px;
-    margin: 4px;
-    border: inset 8px;
+    margin: 2px;
     /*TODO*/
     overflow-x: scroll;
     overflow-y: hidden;
@@ -32,4 +32,8 @@ textarea {
     margin: 0;
     border: none;
     overflow-y: hidden;
+}
+
+.plaintext-render {
+    font-size: large;
 }

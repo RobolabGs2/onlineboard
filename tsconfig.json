@@ -5,7 +5,14 @@
     "module": "es6",
     "target": "es5",
     "allowJs": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "strict": true,
+    "lib": [
+      "dom",
+      "es5",
+      "scripthost",
+      "es2015.collection"
+    ]
   },
   "exclude": [
     "node_modules"
