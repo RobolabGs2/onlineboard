@@ -39,22 +39,32 @@ class LineInBoard {
     private readonly section = document.createElement('section');
     public readonly line: Line;
 
-    constructor(main: HTMLElement, idBoard: string, idLine: LineID, onchange: (id: LineID) => void, order: number) {
+    constructor(main: HTMLElement, idBoard: string, idLine: LineID, order: number,
+                onchange: (id: LineID) => void,
+                onfocus?: (id: LineID) => void) {
         const article = document.createElement('article');
         article.classList.add('line');
         const header = document.createElement('header');
+        const storageKey = [idBoard, idLine].join('/');
         new LineControls(header, editable => {
-            return this.line.editable = editable;
+            const state = this.line.editable = editable;
+            localStorage.setItem(storageKey, JSON.stringify(state));
+            return state;
         }, () => {
             fetch(`/board/${idBoard}/line/${idLine}`, {method: 'DELETE'})
                 .catch(e => alert(e));
         });
         const lineSection = document.createElement('section');
         this.line = new Line(lineSection, onchange.bind(null, idLine));
-        this.line.editable = false;
+        this.line.editable = JSON.parse(localStorage.getItem(storageKey) || "false");
         this.order = order;
+        this.section.tabIndex = Math.max(1, order);
         article.append(header, lineSection);
         this.section.append(article);
+        this.section.addEventListener('focus', () => {
+            console.log(idLine);
+            // TODO
+        });
         main.append(this.section);
     }
 
@@ -62,6 +72,14 @@ class LineInBoard {
         if (this.section.style.order !== order.toString()) {
             this.section.style.order = order.toString()
         }
+    }
+
+    get order(): number {
+        return Number.parseInt(this.section.style.order);
+    }
+
+    focus() {
+        this.section.scrollIntoView();
     }
 
     delete() {
@@ -73,6 +91,7 @@ export class Board {
     private lines = new Map<LineID, LineInBoard>();
     private readonly root: HTMLElement;
     private modified = new Set<LineID>();
+    private lastLine: LineID = "";
 
     constructor(parentElem: HTMLElement, private readonly id: string) {
         this.root = document.createElement('article');
@@ -87,11 +106,17 @@ export class Board {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            parent: "", value: new LineSnapshot()
+                            parent: this.lastLine, value: new LineSnapshot()
                         })
                     })
                         .then(value => value.text())
-                        .then(id => console.log(id))
+                        .then(id => {
+                            const newLine = this.lines.get(id);
+                            if (!newLine)
+                                throw 'Trouble this new line ' + id;
+                            newLine.focus();
+                            newLine.line.editable = true;
+                        })
                         .catch(e => alert(e));
                 }
             }
@@ -99,7 +124,7 @@ export class Board {
     }
 
     private addLine(id: LineID, number: number = Number.MAX_SAFE_INTEGER): LineInBoard {
-        let lineInBoard = new LineInBoard(this.root, this.id, id, this.modified.add.bind(this.modified), number);
+        let lineInBoard = new LineInBoard(this.root, this.id, id, number, this.modified.add.bind(this.modified));
         this.lines.set(id, lineInBoard);
         return lineInBoard
     }
@@ -125,7 +150,22 @@ export class Board {
         if (data.number) {
             if (data.number === -1) {
                 boardLine.delete();
+                this.lines.delete(data.id);
+                let number = 1;
+                if (this.lastLine === data.id) {
+                    this.lines.forEach((value, key) => {
+                        if (value.order > number) {
+                            number = value.order;
+                            this.lastLine = key;
+                        }
+                    })
+                }
                 return;
+            }
+            // TODO: error check
+            let lastline = this.lines.get(this.lastLine) || boardLine;
+            if (lastline.order < data.number) {
+                this.lastLine = data.id;
             }
             boardLine.order = data.number;
         }

@@ -56,7 +56,10 @@ export class InputField {
     }
     set visible(visible: boolean) {
         this.rootElem.style.display = visible ? "" : "none";
-        resizeTextArea(this.elem);
+        if (visible) {
+            this.elem.focus();
+            resizeTextArea(this.elem);
+        }
     }
     set type(type: LanguageType) {
         const opts = this.typeElement.options;
