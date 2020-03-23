@@ -40,6 +40,7 @@ export class ColorThemesPanel {
     constructor(parent: HTMLElement, themes: Array<ColorTheme>) {
         const storedTheme = localStorage.getItem(colorThemeInStorage);
         if (storedTheme) SetColorTheme(JSON.parse(storedTheme));
+        else SetColorTheme(themes[0]);
         const article = document.createElement('article');
         article.classList.add('color-themes-panel', 'simple-row');
         themes.forEach(theme => new ColorThemeView(article, theme));

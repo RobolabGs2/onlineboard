@@ -27,10 +27,11 @@ html, body {
     display: flex;
     height: 100%;
     width: 100%;
+    max-width: 100%;
     min-height: 128px;
 }
 
-.line * {
+.line > *, .line > * > *,  .line > * > * > *{
     background-color: var(--line-background-color);
     color: var(--line-text-color);
 }
@@ -41,6 +42,8 @@ html, body {
     margin: 2px;
     display: flex;
     flex-direction: column;
+    border-left: solid 1px var(--board-background-color);
+    overflow-y: auto;
 }
 
 textarea {
@@ -50,6 +53,7 @@ textarea {
     padding: 0;
     margin-top: 8px;
     border: none;
+    overflow-y: hidden;
 }
 
 .plaintext-render {

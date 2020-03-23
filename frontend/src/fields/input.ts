@@ -10,6 +10,13 @@ interface InputFiledEventMap {
     "change": ChangeEvent
 }
 
+function resizeTextArea(textarea: HTMLTextAreaElement) {
+    setTimeout(() => {
+        textarea.style.cssText = 'height:auto;';
+        textarea.style.cssText = `height: ${textarea.scrollHeight}px`;
+    }, 0);
+}
+
 export class InputField {
     private readonly elem: HTMLTextAreaElement;
     private onchange = new Array<(this: this, ev: ChangeEvent) => void>();
@@ -17,9 +24,9 @@ export class InputField {
     private readonly typeElement: HTMLSelectElement;
     constructor(parent: HTMLElement, render: (engine: LanguageType) => void) {
         this.elem = document.createElement('textarea');
-        this.elem.classList.add('board-layout');
         this.elem.addEventListener("input", _ => {
             this.onchange.forEach(x => x.call(this, new ChangeEvent(this.elem.value)));
+            resizeTextArea(this.elem);
         });
         this.typeElement = document.createElement('select');
         for (let render in LanguageRenders) {
@@ -29,7 +36,6 @@ export class InputField {
             render(this.type);
         });
         this.rootElem = document.createElement('article');
-        this.rootElem.classList.add('board-layout');
         this.rootElem.append(this.typeElement, this.elem);
         parent.appendChild(this.rootElem)
     }
@@ -50,6 +56,7 @@ export class InputField {
     }
     set visible(visible: boolean) {
         this.rootElem.style.display = visible ? "" : "none";
+        resizeTextArea(this.elem);
     }
     set type(type: LanguageType) {
         const opts = this.typeElement.options;

@@ -9,7 +9,6 @@ export class OutField {
     constructor(parentNode: HTMLElement, render: RenderEngine = new KaTeXRender()) {
         this._renderer = render;
         parentNode.appendChild(this.outputContainer = document.createElement('article'));
-        this.outputContainer.classList.add('board-layout');
         setInterval(() => {
             if (!this.changed)
                 return;
