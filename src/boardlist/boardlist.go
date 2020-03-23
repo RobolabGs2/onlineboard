@@ -61,12 +61,11 @@ func (bl *BoardList) MakeEchoSocket() func(writer http.ResponseWriter, request *
 			if err != nil {
 				return
 			}
-			fmt.Println(string(msg))
 			var msgdata InputMessage
 			err = json.Unmarshal(msg, &msgdata)
 
 			if err == nil {
-				board.WriteMessages(string(msgdata.Lineid), msgdata.Value)
+				board.WriteMessages(string(msgdata.Lineid), msgdata.Value, conn)
 			} else {
 				fmt.Println(err)
 			}

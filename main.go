@@ -64,8 +64,6 @@ func main() {
 				return
 			}
 
-			log.Println(msg)
-
 			output, err := bl.CreateLine(mux.Vars(r)["boardid"], string(msg.Parent), msg.Value)
 
 			if err != nil {

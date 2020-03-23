@@ -121,18 +121,24 @@ func (board *Board) DeleteLine(lineid string) error {
 }
 
 func (board *Board) unsafeSendMessages(line *Line) {
+	board.unsafeSendMessagesWithSender(line, nil)
+}
+
+func (board *Board) unsafeSendMessagesWithSender(line *Line, sender *websocket.Conn) {
 	for e := board.connects.Front(); e != nil; e = e.Next() {
 		switch val := e.Value.(type) {
 		case *websocket.Conn:
-			err := val.WriteJSON(line)
-			if err != nil {
-				fmt.Println("Bad socket in the list!!")
+			if val != sender {
+				err := val.WriteJSON(line)
+				if err != nil {
+					fmt.Println("Bad socket in the list!!")
+				}
 			}
 		}
 	}
 }
 
-func (board *Board) WriteMessages(lineid string, msg json.RawMessage) {
+func (board *Board) WriteMessages(lineid string, msg json.RawMessage, sender *websocket.Conn) {
 
 	board.mutex.Lock()
 	defer board.mutex.Unlock()
@@ -143,5 +149,5 @@ func (board *Board) WriteMessages(lineid string, msg json.RawMessage) {
 	}
 	line.Value = msg
 
-	board.unsafeSendMessages(line)
+	board.unsafeSendMessagesWithSender(line, sender)
 }
