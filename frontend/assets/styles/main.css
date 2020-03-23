@@ -13,24 +13,34 @@ html, body {
     color: var(--board-text-color)
 }
 
-.board {
+.line {
+    display: flex;
+    margin-top: 2px;
+}
+
+.line > header > article {
+    display: flex;
+    flex-direction: column;
+}
+
+.line > section {
     display: flex;
     height: 100%;
+    width: 100%;
     min-height: 128px;
 }
 
-.board-layout {
+.line * {
     background-color: var(--line-background-color);
     color: var(--line-text-color);
 }
 
-.board article {
+.line > section > article {
     flex: 1;
     padding: 8px;
     margin: 2px;
-    /*TODO*/
-    /* overflow-x: scroll; */
-    overflow-y: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 textarea {
@@ -38,20 +48,17 @@ textarea {
     height: 100%;
     font-size: large;
     padding: 0;
-    margin: 0;
+    margin-top: 8px;
     border: none;
-    overflow-y: hidden;
 }
 
 .plaintext-render {
     font-size: large;
 }
 
-button, select {
+button {
     border: none;
     padding: 5px 10px;
-    background-color: var(--line-background-color);
-    color: var(--line-text-color);
 }
 
 .color-themes-panel div {
@@ -69,9 +76,14 @@ button, select {
 
 .simple-row {
     display: flex;
- }
+}
 
 body > header {
     display: flex;
     justify-content: space-between;
+}
+
+body > article {
+    display: flex;
+    flex-direction: column;
 }

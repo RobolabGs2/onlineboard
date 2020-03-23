@@ -1,46 +1,10 @@
-import {KaTeXRender, RenderEngine} from "./render";
+import {LanguageRenders, LanguageType} from "../render";
 
 class ChangeEvent {
     constructor(public readonly text: string | any) {
     }
 }
 
-
-export class OutField {
-    private _renderer: RenderEngine;
-    private _value: string = "";
-    private readonly outputContainer: HTMLElement;
-    private changed = false;
-    constructor(parentNode: HTMLElement, render: RenderEngine = new KaTeXRender()) {
-        this._renderer = render;
-        parentNode.appendChild(this.outputContainer = document.createElement('article'));
-        this.outputContainer.classList.add('board-layout');
-        setInterval(() => {
-            if (!this.changed)
-                return;
-            this.changed = false;
-            this.render();
-        }, 1000/40);
-    }
-
-    set engine(render: RenderEngine) {
-        if (this._renderer === render)
-            return;
-        this.changed = true;
-        this._renderer = render;
-    }
-
-    set value(text: string) {
-        if (this._value === text)
-            return;
-        this._value = text;
-        this.changed = true;
-    }
-
-    private render() {
-        this._renderer.render(this._value, this.outputContainer);
-    }
-}
 
 interface InputFiledEventMap {
     "change": ChangeEvent
@@ -50,15 +14,23 @@ export class InputField {
     private readonly elem: HTMLTextAreaElement;
     private onchange = new Array<(this: this, ev: ChangeEvent) => void>();
     private readonly rootElem: HTMLElement;
-    constructor(parent: HTMLElement) {
+    private readonly typeElement: HTMLSelectElement;
+    constructor(parent: HTMLElement, render: (engine: LanguageType) => void) {
         this.elem = document.createElement('textarea');
         this.elem.classList.add('board-layout');
         this.elem.addEventListener("input", _ => {
             this.onchange.forEach(x => x.call(this, new ChangeEvent(this.elem.value)));
         });
+        this.typeElement = document.createElement('select');
+        for (let render in LanguageRenders) {
+            this.typeElement.add(new Option(render, render));
+        }
+        this.typeElement.addEventListener("change", _ => {
+            render(this.type);
+        });
         this.rootElem = document.createElement('article');
         this.rootElem.classList.add('board-layout');
-        this.rootElem.appendChild(this.elem);
+        this.rootElem.append(this.typeElement, this.elem);
         parent.appendChild(this.rootElem)
     }
 
@@ -78,5 +50,18 @@ export class InputField {
     }
     set visible(visible: boolean) {
         this.rootElem.style.display = visible ? "" : "none";
+    }
+    set type(type: LanguageType) {
+        const opts = this.typeElement.options;
+        for (let opt, j = 0; opt = opts[j]; j++) {
+            if (opt.value == type) {
+                this.typeElement.options.selectedIndex = j;
+                return;
+            }
+        }
+        alert(`Неизвестный тип рендера ${type}. Попробуйте перезагрузить страницу.`)
+    }
+    get type(): LanguageType {
+        return this.typeElement.options[this.typeElement.selectedIndex].text as LanguageType;
     }
 }

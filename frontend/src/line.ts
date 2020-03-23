@@ -1,5 +1,7 @@
-import {InputField, OutField} from "./fields";
 import {LanguageRenders, LanguageType} from "./render";
+import {InputField} from "./fields/input";
+import {SVGPictures} from "./svg";
+import {OutField} from "./fields/output";
 
 export class LineSnapshot {
     constructor(readonly value?: string,
@@ -9,49 +11,19 @@ export class LineSnapshot {
 }
 
 class LineControls {
-    private readonly typeElement: HTMLSelectElement;
-
     constructor(parent: HTMLElement,
-                editable: (editable: boolean) => boolean,
-                render: (engine: LanguageType) => void) {
+                editable: (editable: boolean) => boolean) {
         const main = document.createElement('article');
         main.classList.add('board-controls');
         const edit = document.createElement('button');
-        edit.textContent = "Редактировать";
+        edit.innerHTML = SVGPictures.Edit;
         let editState = false;
         editable(editState);
         edit.addEventListener('click', _ => {
             editState = editable(editState = !editState);
-            if (editState) {
-                edit.textContent = "Перестать редактировать";
-            } else {
-                edit.textContent = "Редактировать";
-            }
         });
-        this.typeElement = document.createElement('select');
-        for (let render in LanguageRenders) {
-            this.typeElement.add(new Option(render, render));
-        }
-        this.typeElement.addEventListener("change", _ => {
-            render(this.type);
-        });
-        main.append(edit, this.typeElement);
+        main.append(edit);
         parent.append(main);
-    }
-
-    set type(type: LanguageType) {
-        const opts = this.typeElement.options;
-        for (let opt, j = 0; opt = opts[j]; j++) {
-            if (opt.value == type) {
-                this.typeElement.options.selectedIndex = j;
-                return;
-            }
-        }
-        alert(`Неизвестный тип рендера ${type}. Попробуйте перезагрузить страницу.`)
-    }
-
-    get type(): LanguageType {
-        return this.typeElement.options[this.typeElement.selectedIndex].text as LanguageType;
     }
 }
 
@@ -66,8 +38,11 @@ export class Line {
         const header = document.createElement('header');
         const section = document.createElement('section');
         main.append(header, section);
-        section.classList.add("board");
-        this.input = new InputField(section);
+        main.classList.add("line");
+        this.input = new InputField(section,  language => {
+            this.out.engine = LanguageRenders[language];
+            onchange();
+        });
         this.out = new OutField(section);
         this.input.addEventListener('change', ev => {
             this.out.value = ev.text;
@@ -76,9 +51,6 @@ export class Line {
         this.controls = new LineControls(header, editable => {
             this.input.visible = editable;
             return editable;
-        }, language => {
-            this.out.engine = LanguageRenders[language];
-            onchange();
         });
         parent.appendChild(main);
     }
@@ -88,7 +60,7 @@ export class Line {
             return;
         if (data.type) {
             this.out.engine = LanguageRenders[data.type];
-            this.controls.type = data.type;
+            this.input.type = data.type;
         }
         if (data.value)
             this.input.value = this.out.value = data.value;
@@ -96,6 +68,6 @@ export class Line {
     }
 
     get data(): LineSnapshot {
-        return new LineSnapshot(this.input.value, this.controls.type)
+        return new LineSnapshot(this.input.value, this.input.type)
     }
 }
