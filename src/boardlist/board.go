@@ -110,7 +110,7 @@ func (board *Board) DeleteLine(lineid string) error {
 		return fmt.Errorf("This is the last line")
 	}
 
-	board.lines[lineid] = nil
+	delete(board.lines, lineid)
 	board.lineList.Remove(line.elem)
 
 	line.Number = -1

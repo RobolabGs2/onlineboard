@@ -15,25 +15,11 @@ export class ASCIIMathRender implements RenderEngine {
     }
 }
 
-function escape(text: string) {
-    const htmlEscapes = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-    };
-    return text.replace(/[&<>"']/g, function (match) {
-        // @ts-ignore
-        return htmlEscapes[match];
-    });
-}
-
 export class PlainRender implements RenderEngine {
     render(text: string, where: HTMLElement): void {
         const output = document.createElement('pre');
         output.classList.add('plaintext-render');
-        output.innerText = escape(text);
+        output.innerText = text;
         where.innerHTML = "";
         where.append(output)
     }

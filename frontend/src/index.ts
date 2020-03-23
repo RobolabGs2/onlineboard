@@ -17,7 +17,13 @@ socket.addEventListener("open", function (e) {
 });
 
 socket.addEventListener("message", function (event) {
-    board.update(JSON.parse(event.data));
+    console.log(event.data);
+    const data = JSON.parse(event.data);
+    if (!data) {
+        console.error(`WTF from server: ${event.data}`);
+        return
+    }
+    board.update(data);
 });
 
 socket.addEventListener("close", function (event) {

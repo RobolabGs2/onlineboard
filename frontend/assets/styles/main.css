@@ -15,12 +15,14 @@ html, body {
 
 .line {
     display: flex;
-    margin-top: 2px;
+    margin-top: 4px;
 }
 
-.line > header > article {
+.line-controls {
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
 }
 
 .line > section {

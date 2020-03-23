@@ -1,4 +1,5 @@
 import {Line, LineSnapshot} from "./line";
+import {SVGPictures} from "./svg";
 
 type LineID = number | string;
 
@@ -9,20 +10,62 @@ class LineUpdate {
     }
 }
 
+class ClickableSVGButton {
+    constructor(parentNode: HTMLElement, svg: string, onclick: () => void) {
+        const button = document.createElement('button');
+        button.innerHTML = svg;
+        button.addEventListener('click', onclick);
+        parentNode.append(button);
+
+    }
+}
+
+class LineControls {
+    constructor(parent: HTMLElement,
+                editable: (editable: boolean) => boolean,
+                del: () => void) {
+        const main = document.createElement('article');
+        main.classList.add('line-controls');
+        let editState = false;
+        new ClickableSVGButton(main, SVGPictures.Edit, () => {
+            editState = editable(editState = !editState);
+        });
+        new ClickableSVGButton(main, SVGPictures.Delete, del);
+        parent.append(main);
+    }
+}
+
 class LineInBoard {
     private readonly section = document.createElement('section');
     public readonly line: Line;
 
-    constructor(article: HTMLElement, onchange: () => void, order: number) {
-        this.line = new Line(this.section, onchange);
+    constructor(main: HTMLElement, idBoard: string, idLine: LineID, onchange: (id: LineID) => void, order: number) {
+        const article = document.createElement('article');
+        article.classList.add('line');
+        const header = document.createElement('header');
+        new LineControls(header, editable => {
+            return this.line.editable = editable;
+        }, () => {
+            fetch(`/board/${idBoard}/line/${idLine}`, {method: 'DELETE'})
+                .catch(e => alert(e));
+        });
+        const lineSection = document.createElement('section');
+        this.line = new Line(lineSection, onchange.bind(null, idLine));
+        this.line.editable = false;
         this.order = order;
-        article.append(this.section);
+        article.append(header, lineSection);
+        this.section.append(article);
+        main.append(this.section);
     }
 
     set order(order: number) {
         if (this.section.style.order !== order.toString()) {
             this.section.style.order = order.toString()
         }
+    }
+
+    delete() {
+        this.section.remove();
     }
 }
 
@@ -31,8 +74,9 @@ export class Board {
     private readonly root: HTMLElement;
     private modified = new Set<LineID>();
 
-    constructor(parentElem: HTMLElement, id: string) {
+    constructor(parentElem: HTMLElement, private readonly id: string) {
         this.root = document.createElement('article');
+        this.root.classList.add('board');
         parentElem.appendChild(this.root);
         parentElem.addEventListener("keydown", ev => {
             if (ev.ctrlKey) {
@@ -55,7 +99,7 @@ export class Board {
     }
 
     private addLine(id: LineID, number: number = Number.MAX_SAFE_INTEGER): LineInBoard {
-        let lineInBoard = new LineInBoard(this.root, () => this.modified.add(id), number);
+        let lineInBoard = new LineInBoard(this.root, this.id, id, this.modified.add.bind(this.modified), number);
         this.lines.set(id, lineInBoard);
         return lineInBoard
     }
@@ -74,12 +118,14 @@ export class Board {
     update(data: LineUpdate) {
         let boardLine = this.lines.get(data.id);
         if (!boardLine) {
-            boardLine = this.addLine(data.id);
+            if (data.number === -1)
+                return;
+            boardLine = this.addLine(data.id, data.number);
         }
-        if (data.number != null) {
+        if (data.number) {
             if (data.number === -1) {
-                // TODO: delete
-                // return
+                boardLine.delete();
+                return;
             }
             boardLine.order = data.number;
         }
