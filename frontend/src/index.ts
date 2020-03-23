@@ -1,4 +1,16 @@
 import {Board} from "./board";
+import {ColorTheme, ColorThemesPanel} from "./style";
+
+const Themes = [
+    new ColorTheme("#33343D", "#DAD7DD", "#131416", "#DAD7DD"),
+    new ColorTheme("#EEE", "#000", "#154336", "#FFF"),
+    new ColorTheme("#EEE", "#000", "#FFF", "#000"),
+    new ColorTheme("#000", "#EEE", "#FFF", "#000"),
+    new ColorTheme("#EEE", "#000", "#FFF", "#00F"),
+];
+
+const header = document.body.getElementsByTagName('header')[0];
+new ColorThemesPanel(header, Themes);
 
 let boardId = window.location.pathname.split("/").pop();
 if (!boardId)

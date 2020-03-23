@@ -1,9 +1,16 @@
+:root {
+    --board-text-color: #DAD7DD;
+    --line-text-color: #DAD7DD;
+    --line-background-color: #131416;
+    --board-background-color: #33343D;
+}
+
 html, body {
     padding: 0;
     margin: 0;
     height: 100%;
-    background-color: #33343D;
-    color: #DAD7DD
+    background-color: var(--board-background-color);
+    color: var(--board-text-color)
 }
 
 .board {
@@ -13,8 +20,8 @@ html, body {
 }
 
 .board-layout {
-    background-color: #131416/*#154336*/;
-    color: #DAD7DD;
+    background-color: var(--line-background-color);
+    color: var(--line-text-color);
 }
 
 .board article {
@@ -40,16 +47,31 @@ textarea {
     font-size: large;
 }
 
-button{
-    background-color: #131416;
+button, select {
     border: none;
-    color: #DAD7DD;
     padding: 5px 10px;
+    background-color: var(--line-background-color);
+    color: var(--line-text-color);
 }
 
-select{
-    background-color: #131416; 
-    border: none;
-    color: #DAD7DD;
-    padding: 5px 10px;
+.color-themes-panel div {
+    padding: 4px;
+    font-size: smaller;
+}
+
+.color-themes-panel {
+    border: solid 1px;
+}
+
+.color-themes-panel:hover {
+    cursor: pointer;
+}
+
+.simple-row {
+    display: flex;
+ }
+
+body > header {
+    display: flex;
+    justify-content: space-between;
 }
