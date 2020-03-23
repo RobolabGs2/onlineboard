@@ -14,18 +14,24 @@ type Line struct {
 	Id     string          `json:"id"`
 	Value  json.RawMessage `json:"value"`
 	Number int             `json:"number"`
+	elem   *list.Element
 }
 
 type Board struct {
 	mutex    sync.Mutex
 	lines    map[string]*Line
+	lineList list.List
 	connects list.List
 }
 
 func (board *Board) Init() *Board {
 	board.connects.Init()
 	board.lines = make(map[string]*Line)
-	board.lines[""] = &Line{Id: "", Number: 0}
+	board.lineList.Init()
+
+	line := &Line{Id: "", Number: 0}
+	board.lines[""] = line
+	line.elem = board.lineList.PushBack(line)
 	return board
 }
 
@@ -48,6 +54,28 @@ func (board *Board) RemoveConnaction(elem *list.Element, boardid string) {
 	board.mutex.Unlock()
 }
 
+func (board *Board) recursiveReleaseSpace(pred *Line, nextElem *list.Element) int {
+	if nextElem == nil {
+		return pred.Number + 65536
+	}
+
+	switch next := nextElem.Value.(type) {
+	case *Line:
+
+		delta := next.Number - pred.Number
+
+		if delta > 1 {
+			return pred.Number + (delta*2)/3
+		}
+
+		next.Number = board.recursiveReleaseSpace(next, next.elem.Next())
+		delta = next.Number - pred.Number
+		board.unsafeSendMessages(next)
+		return pred.Number + (delta*2)/3
+	}
+	return 0
+}
+
 func (board *Board) CreateLine(parentid string, value json.RawMessage) (string, error) {
 	board.mutex.Lock()
 
@@ -57,8 +85,11 @@ func (board *Board) CreateLine(parentid string, value json.RawMessage) (string, 
 		return "", fmt.Errorf("line %s does not exist", parentid)
 	}
 
-	line := &Line{Id: uuid.New().String(), Value: value, Number: parent.Number + 1}
+	line := &Line{Id: uuid.New().String(), Value: value}
 	board.lines[line.Id] = line
+	line.elem = board.lineList.InsertAfter(line, parent.elem)
+
+	line.Number = board.recursiveReleaseSpace(parent, line.elem.Next())
 
 	board.unsafeSendMessages(line)
 	board.mutex.Unlock()
@@ -76,6 +107,7 @@ func (board *Board) DeleteLine(lineid string) error {
 	}
 
 	board.lines[lineid] = nil
+	board.lineList.Remove(line.elem)
 
 	line.Number = -1
 
