@@ -99,11 +99,15 @@ func (board *Board) CreateLine(parentid string, value json.RawMessage) (string, 
 
 func (board *Board) DeleteLine(lineid string) error {
 	board.mutex.Lock()
+	defer board.mutex.Unlock()
 
 	line := board.lines[lineid]
 	if line == nil {
-		board.mutex.Unlock()
 		return fmt.Errorf("line %s does not exist", lineid)
+	}
+
+	if board.lineList.Len() == 1 {
+		return fmt.Errorf("This is the last line")
 	}
 
 	board.lines[lineid] = nil
@@ -112,7 +116,6 @@ func (board *Board) DeleteLine(lineid string) error {
 	line.Number = -1
 
 	board.unsafeSendMessages(line)
-	board.mutex.Unlock()
 
 	return nil
 }
