@@ -31,6 +31,18 @@ html, body {
     height: 100%;
 }
 
+.line-controls button:hover {
+    background-color: var(--line-text-color);
+    color: var(--line-background-color);
+    opacity: 0.75;
+}
+
+.line-controls button:focus {
+    background-color: var(--line-text-color);
+    color: var(--line-background-color);
+    opacity: 1;
+}
+
 .line > section {
     display: flex;
     width: 100%;
@@ -94,4 +106,8 @@ body > header {
 
 .output-container * {
     margin: 0;
+}
+
+:focus, .focus {
+    outline: auto;
 }

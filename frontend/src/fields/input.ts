@@ -22,6 +22,7 @@ export class InputField {
     private onchange = new Array<(this: this, ev: ChangeEvent) => void>();
     private readonly rootElem: HTMLElement;
     private readonly typeElement: HTMLSelectElement;
+
     constructor(parent: HTMLElement, render: (engine: LanguageType) => void) {
         this.elem = document.createElement('textarea');
         this.elem.addEventListener("input", _ => {
@@ -40,29 +41,29 @@ export class InputField {
         parent.appendChild(this.rootElem)
     }
 
-    addEventListener<K extends keyof InputFiledEventMap>(type: K, listener: (this: this, ev: InputFiledEventMap[K]) => void): number {
-        switch (type) {
-            case "change":
-                return this.onchange.push(listener) - 1;
-            default:
-                throw `${type} cannot listen for InputField`;
-        }
+    get value(): string {
+        return this.elem.value
     }
+
     set value(text: string) {
         this.elem.value = text;
     }
-    get value(): string{
-        return this.elem.value
-    }
+
     set visible(visible: boolean) {
         this.rootElem.style.display = visible ? "" : "none";
         if (visible) {
-            this.elem.focus();
+            this.elem.focus({preventScroll: true});
             resizeTextArea(this.elem);
         }
     }
+
+    get type(): LanguageType {
+        return this.typeElement.options[this.typeElement.selectedIndex].text as LanguageType;
+    }
+
     set type(type: LanguageType) {
         const opts = this.typeElement.options;
+        // noinspection JSAssignmentUsedAsCondition
         for (let opt, j = 0; opt = opts[j]; j++) {
             if (opt.value == type) {
                 this.typeElement.options.selectedIndex = j;
@@ -71,7 +72,13 @@ export class InputField {
         }
         alert(`Неизвестный тип рендера ${type}. Попробуйте перезагрузить страницу.`)
     }
-    get type(): LanguageType {
-        return this.typeElement.options[this.typeElement.selectedIndex].text as LanguageType;
+
+    addEventListener<K extends keyof InputFiledEventMap>(type: K, listener: (this: this, ev: InputFiledEventMap[K]) => void): number {
+        switch (type) {
+            case "change":
+                return this.onchange.push(listener) - 1;
+            default:
+                throw `${type} cannot listen for InputField`;
+        }
     }
 }
