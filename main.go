@@ -87,7 +87,7 @@ func main() {
 			err := bl.DeleteLine(boardid, lineid)
 
 			if err != nil {
-				http.Error(w, err.Error(), 500)
+				http.Error(w, err.Error(), 400)
 				return
 			}
 		})

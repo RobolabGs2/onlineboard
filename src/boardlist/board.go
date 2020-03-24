@@ -29,8 +29,8 @@ func (board *Board) Init() *Board {
 	board.lines = make(map[string]*Line)
 	board.lineList.Init()
 
-	line := &Line{Id: "", Number: 0}
-	board.lines[""] = line
+	line := &Line{Id: "superline", Number: 0}
+	board.lines["superline"] = line
 	line.elem = board.lineList.PushBack(line)
 	return board
 }
