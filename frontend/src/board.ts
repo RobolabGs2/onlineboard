@@ -11,32 +11,48 @@ class LineUpdate {
 }
 
 class ClickableSVGButton {
-    constructor(parentNode: HTMLElement, svg: string, onclick: () => void) {
-        const button = document.createElement('button');
-        button.innerHTML = svg;
-        button.addEventListener('click', onclick);
-        parentNode.append(button);
+    private readonly button = document.createElement('button');
 
+    constructor(parentNode: HTMLElement, svg: string, onclick: () => void) {
+        this.button.innerHTML = svg;
+        this.button.addEventListener('click', onclick);
+        parentNode.append(this.button);
+    }
+
+    set visible(visible: boolean) {
+        this.button.style.display = visible ? "" : "none";
+    }
+    click() {
+        this.button.click();
     }
 }
 
 class LineControls {
+    private readonly delButton: ClickableSVGButton;
+    private editState = true;
     constructor(parent: HTMLElement,
-                editable: (editable: boolean) => boolean,
+                private readonly editable: (editable: boolean) => boolean,
                 del: () => void) {
         const main = document.createElement('article');
         main.classList.add('line-controls');
-        let editState = false;
         new ClickableSVGButton(main, SVGPictures.Edit, () => {
-            editState = editable(editState = !editState);
+            this.edit = !this.editState;
         });
-        new ClickableSVGButton(main, SVGPictures.Delete, del);
+        this.delButton = new ClickableSVGButton(main, SVGPictures.Delete, del);
         parent.append(main);
+    }
+
+    set edit(editable: boolean) {
+        if (editable === this.editState) {
+            return
+        }
+        this.delButton.visible = this.editState = this.editable(editable);
     }
 }
 
 class LineInBoard {
     private readonly section = document.createElement('section');
+    private readonly controls: LineControls;
     public readonly line: Line;
 
     constructor(main: HTMLElement, idBoard: string, idLine: LineID, order: number,
@@ -46,7 +62,7 @@ class LineInBoard {
         article.classList.add('line');
         const header = document.createElement('header');
         const storageKey = [idBoard, idLine].join('/');
-        new LineControls(header, editable => {
+        this.controls = new LineControls(header, editable => {
             const state = this.line.editable = editable;
             localStorage.setItem(storageKey, JSON.stringify(state));
             return state;
@@ -56,20 +72,28 @@ class LineInBoard {
         });
         const lineSection = document.createElement('section');
         this.line = new Line(lineSection, onchange.bind(null, idLine));
-        this.line.editable = JSON.parse(localStorage.getItem(storageKey) || "false");
-        this.order = order;
-        this.section.tabIndex = Math.max(1, order);
+        this.controls.edit = JSON.parse(localStorage.getItem(storageKey) || "false");
         article.append(header, lineSection);
         this.section.append(article);
         this.section.addEventListener('focus', () => {
             console.log(idLine);
             // TODO
         });
+        this.order = order;
         main.append(this.section);
     }
 
     set order(order: number) {
         if (this.section.style.order !== order.toString()) {
+            console.log(order);
+            const tabIndex = Math.max(1, order);
+            // this.section.tabIndex = tabIndex;
+            ['button', 'input', 'select', 'textarea'].forEach(selector => this.section
+                .querySelectorAll(selector)
+                .forEach((el) => {
+                    console.log(el);
+                    (el as HTMLElement).tabIndex = tabIndex;
+                }));
             this.section.style.order = order.toString()
         }
     }
@@ -79,12 +103,22 @@ class LineInBoard {
     }
 
     focus() {
-        this.section.scrollIntoView();
+        this.section.scrollIntoView(true);
     }
 
     delete() {
         this.section.remove();
     }
+
+    set edit(b: boolean) {
+        this.controls.edit = b;
+    }
+}
+
+function Exists<T>(maybe: T | null | undefined): Promise<T> {
+    if (maybe)
+        return Promise.resolve(maybe);
+    return Promise.reject('is null');
 }
 
 export class Board {
@@ -100,22 +134,25 @@ export class Board {
         parentElem.addEventListener("keydown", ev => {
             if (ev.ctrlKey) {
                 if (ev.key === "Enter") {
-                    fetch(`/board/${id}/line`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            parent: this.lastLine, value: new LineSnapshot()
+                    Exists(this.lines.get(this.lastLine)).then(line => {
+                        line.edit = false;
+                        return fetch(`/board/${id}/line`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                parent: this.lastLine,
+                                value: new LineSnapshot("", line.line.type)
+                            })
                         })
-                    })
-                        .then(value => value.text())
+                    }).then(value => value.text())
                         .then(id => {
                             const newLine = this.lines.get(id);
                             if (!newLine)
                                 throw 'Trouble this new line ' + id;
+                            newLine.edit = true;
                             newLine.focus();
-                            newLine.line.editable = true;
                         })
                         .catch(e => alert(e));
                 }
@@ -151,7 +188,7 @@ export class Board {
             if (data.number === -1) {
                 boardLine.delete();
                 this.lines.delete(data.id);
-                let number = 1;
+                let number = 0;
                 if (this.lastLine === data.id) {
                     this.lines.forEach((value, key) => {
                         if (value.order > number) {
@@ -169,6 +206,7 @@ export class Board {
             }
             boardLine.order = data.number;
         }
-        boardLine.line.data = data.value;
+        if (data.value)
+            boardLine.line.data = data.value;
     }
 }

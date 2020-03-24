@@ -37,6 +37,9 @@ export class Line {
         this.out.engine = LanguageRenders[type];
         this.input.type = type;
     }
+    get type(): LanguageType {
+        return this.input.type;
+    }
     set value(value: string) {
         this.input.value = this.out.value = value
     }

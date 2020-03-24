@@ -28,7 +28,7 @@ export class PlainRender implements RenderEngine {
 export class KaTeXRender implements RenderEngine {
     render(text: string, where: HTMLElement): void {
         katex.render(text, where, {
-            output: "html", throwOnError: false, displayMode: true
+            output: "html", throwOnError: false
         });
     }
 }
