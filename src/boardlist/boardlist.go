@@ -105,6 +105,12 @@ func (bl *BoardList) DeleteLine(boardid string, lineid string) error {
 	return board.DeleteLine(lineid)
 }
 
+func (bl *BoardList) ExistBoard(boardid string) bool {
+	bl.mutex.Lock()
+	defer bl.mutex.Unlock()
+	return bl.boards[boardid] != nil
+}
+
 func (bl *BoardList) AddConnaction(conn *websocket.Conn, boardid string) (*list.Element, *Board, error) {
 
 	bl.mutex.Lock()

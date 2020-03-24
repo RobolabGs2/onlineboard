@@ -23,11 +23,17 @@ type MoveMessage struct {
 
 func main() {
 	r := mux.NewRouter()
+	bl := boardlist.New()
+
 	r.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		http.ServeFile(writer, request, frontend.From("static", "index.html"))
 	})
-	r.HandleFunc("/board/{id}", func(writer http.ResponseWriter, request *http.Request) {
-		http.ServeFile(writer, request, frontend.From("static", "desk.html"))
+	r.HandleFunc("/board/{boardid}", func(writer http.ResponseWriter, request *http.Request) {
+		if bl.ExistBoard(mux.Vars(request)["boardid"]) {
+			http.ServeFile(writer, request, frontend.From("static", "desk.html"))
+		} else {
+			http.Redirect(writer, request, "/", 303)
+		}
 	})
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static", makeStaticRouter()))
 	r.PathPrefix("/dist").Handler(http.StripPrefix("/dist", frontend.FileServer("/dist")))
@@ -38,8 +44,6 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
-
-	bl := boardlist.New()
 
 	r.HandleFunc("/new", func(w http.ResponseWriter, r *http.Request) {
 		boardid := bl.CreateBoard()
