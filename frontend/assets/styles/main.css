@@ -49,7 +49,18 @@ html, body {
     max-width: 100%;
 }
 
-.line > *, .line > * > *,  .line > * > * > *{
+@media (max-width: 600px) {
+    .line > section {
+        flex-direction: column-reverse;
+    }
+
+    .line > section > article:first-child {
+        border-top: solid 1px var(--board-background-color);
+    }
+}
+
+
+.line > *, .line > * > *, .line > * > * > * {
     background-color: var(--line-background-color);
     color: var(--line-text-color);
 }
@@ -87,12 +98,24 @@ button {
     font-size: smaller;
 }
 
-.color-themes-panel {
-    border: solid 1px;
+.color-themes-panel > div {
+    padding: 4px;
+    font-size: smaller;
+    width: 32px;
+    outline: auto;
+    box-sizing: border-box;
 }
 
-.color-themes-panel:hover {
+.color-themes-panel > div:hover {
+    padding: 4px;
+    font-size: large;
     cursor: pointer;
+}
+
+.color-themes-panel {
+    border: solid 1px;
+    display: flex;
+    flex-wrap: wrap;
 }
 
 .simple-row {
@@ -106,6 +129,11 @@ body > header {
 
 .output-container * {
     margin: 0;
+}
+
+.line article.output-container {
+    padding-left: 16px;
+    padding-right: 16px;
 }
 
 :focus, .focus {

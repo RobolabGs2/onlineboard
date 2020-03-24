@@ -46,4 +46,4 @@ setInterval(() => {
     if (socket.bufferedAmount === 0) {
         board.changes().forEach(x => socket.send(JSON.stringify(x)));
     }
-}, 1000/40);
+}, 1000 / 40);
