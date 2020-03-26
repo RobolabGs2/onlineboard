@@ -1,0 +1,13 @@
+body > header {
+    display: flex;
+    justify-content: space-between;
+}
+
+
+html, body {
+    padding: 0;
+    margin: 0;
+    height: 100%;
+    background-color: var(--board-background-color);
+    color: var(--board-text-color)
+}

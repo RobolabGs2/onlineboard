@@ -1,0 +1,33 @@
+:root {
+    --board-text-color: #DAD7DD;
+    --line-text-color: #DAD7DD;
+    --line-background-color: #383a42;
+    --board-background-color: #2a2c33;
+    --link-hover-color: #339900;
+    --link-active-color: #BAB7BD;
+}
+
+.color-themes-panel div {
+    padding: 4px;
+    font-size: smaller;
+}
+
+.color-themes-panel > div {
+    padding: 4px;
+    font-size: smaller;
+    width: 32px;
+    outline: auto;
+    box-sizing: border-box;
+}
+
+.color-themes-panel > div:hover {
+    padding: 4px;
+    font-size: large;
+    cursor: pointer;
+}
+
+.color-themes-panel {
+    border: solid 1px;
+    display: flex;
+    flex-wrap: wrap;
+}

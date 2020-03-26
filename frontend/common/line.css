@@ -1,0 +1,59 @@
+.line {
+    display: flex;
+    height: 100%;
+}
+
+.line > section {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+}
+
+@media (max-width: 600px) {
+    .line > section {
+        flex-direction: column-reverse;
+    }
+
+    .line > section > article:first-child {
+        border-top: solid 1px var(--board-background-color);
+    }
+}
+
+
+.line > *, .line > * > *, .line > * > * > * {
+    background-color: var(--line-background-color);
+    color: var(--line-text-color);
+}
+
+.line > section > article {
+    flex: 1;
+    padding: 8px;
+    margin: 2px;
+    display: flex;
+    flex-direction: column;
+    border-left: solid 1px var(--board-background-color);
+    overflow-y: auto;
+}
+
+/* TODO: move to fields.css */
+.line textarea {
+    width: 100%;
+    height: 100%;
+    font-size: large;
+    padding: 0;
+    border: none;
+    overflow-y: hidden;
+}
+
+.plaintext-render {
+    font-size: large;
+}
+
+.output-container * {
+    margin: 0;
+}
+
+.line article.output-container {
+    padding-left: 16px;
+    padding-right: 16px;
+}

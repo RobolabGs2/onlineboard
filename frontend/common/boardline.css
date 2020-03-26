@@ -1,0 +1,27 @@
+.line-controls {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
+.line-controls button:hover {
+    background-color: var(--line-text-color);
+    color: var(--line-background-color);
+    opacity: 0.75;
+}
+
+.line-controls button:focus {
+    background-color: var(--line-text-color);
+    color: var(--line-background-color);
+    opacity: 1;
+}
+
+.line-controls button {
+    border: none;
+    padding: 5px 10px;
+}
+
+.board :focus, .focus {
+    outline: auto;
+}

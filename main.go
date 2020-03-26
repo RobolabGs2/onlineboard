@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"onlineboard/src/boardlist"
-	"onlineboard/src/frontend"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -25,27 +24,17 @@ func main() {
 	r := mux.NewRouter()
 	bl := boardlist.New()
 
-	r.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		http.ServeFile(writer, request, frontend.From("static", "index.html"))
+	r.HandleFunc(`/`, func(writer http.ResponseWriter, request *http.Request) {
+		http.ServeFile(writer, request, "./dist/index.html")
 	})
 
 	r.Methods("GET").Path("/board/{boardid}").HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if bl.ExistBoard(mux.Vars(request)["boardid"]) {
-			http.ServeFile(writer, request, frontend.From("static", "desk.html"))
+			http.ServeFile(writer, request, "./dist/board.html")
 		} else {
 			http.Redirect(writer, request, "/", 303)
 		}
 	})
-
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static", makeStaticRouter()))
-	r.PathPrefix("/dist").Handler(http.StripPrefix("/dist", frontend.FileServer("/dist")))
-	srv := &http.Server{
-		Handler: r,
-		Addr:    "0.0.0.0:3000",
-		// Good practice: enforce timeouts for servers you create!
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
-	}
 
 	r.HandleFunc("/new", func(w http.ResponseWriter, r *http.Request) {
 		boardid := bl.CreateBoard()
@@ -113,13 +102,13 @@ func main() {
 				return
 			}
 		})
-
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./dist")))
+	srv := &http.Server{
+		Handler: r,
+		Addr:    "0.0.0.0:3000",
+		// Good practice: enforce timeouts for servers you create!
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
 	log.Fatal(srv.ListenAndServe())
-}
-
-func makeStaticRouter() *mux.Router {
-	r := mux.NewRouter()
-	r.Handle(`/{file:.+\.(?:ico|jpe?g|png|gif|bmp)}`, frontend.FileServer("assets", "images"))
-	r.Handle(`/{file:.+\.css}`, frontend.FileServer("assets", "styles"))
-	return r
 }
