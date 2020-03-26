@@ -12,10 +12,16 @@ if (!boardId)
 const url = `ws://${window.location.host}/board/${boardId}/socket`;
 const socket = new WebSocket(url);
 const board = new Board(document.body, boardId);
-
 socket.addEventListener("open", function (e) {
     console.log("[open] Соединение установлено", e);
 });
+
+const footer = document.createElement('footer');
+const button = document.createElement('button');
+button.textContent = "Получить json";
+button.addEventListener('click', () => alert(JSON.stringify(board)));
+footer.append(button);
+document.body.append(footer);
 
 socket.addEventListener("message", function (event) {
     console.log(event.data);

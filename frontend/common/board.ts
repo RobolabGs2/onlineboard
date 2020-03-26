@@ -71,6 +71,14 @@ export class Board {
             boardLine.line.data = value;
     }
 
+    toJSON() {
+        const obj = new Array<LineInBoard>();
+        this.lines.forEach(function (value) {
+            obj.push(value);
+        });
+        return obj.sort((a, b) => a.order - b.order).map(value => value.line.data);
+    }
+
     private addLineOverHttp(parentId: LineID, parentLine: LineInBoard) {
         parentLine.edit = false;
         return fetch(`/board/${(this.id)}/line`, {
