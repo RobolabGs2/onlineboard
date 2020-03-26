@@ -28,13 +28,15 @@ func main() {
 	r.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		http.ServeFile(writer, request, frontend.From("static", "index.html"))
 	})
-	r.HandleFunc("/board/{boardid}", func(writer http.ResponseWriter, request *http.Request) {
+
+	r.Methods("GET").Path("/board/{boardid}").HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if bl.ExistBoard(mux.Vars(request)["boardid"]) {
 			http.ServeFile(writer, request, frontend.From("static", "desk.html"))
 		} else {
 			http.Redirect(writer, request, "/", 303)
 		}
 	})
+
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static", makeStaticRouter()))
 	r.PathPrefix("/dist").Handler(http.StripPrefix("/dist", frontend.FileServer("/dist")))
 	srv := &http.Server{
@@ -51,6 +53,26 @@ func main() {
 	})
 
 	r.HandleFunc("/board/{boardid}/socket", bl.MakeEchoSocket())
+
+	r.Methods("POST").Path("/board/load").HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			b, err := ioutil.ReadAll(r.Body)
+			defer r.Body.Close()
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+
+			var msg []json.RawMessage
+			err = json.Unmarshal(b, &msg)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+
+			boardid := bl.LoadBoard(msg)
+			http.Redirect(w, r, "/board/"+boardid, 303)
+		})
 
 	r.Methods("POST").Path("/board/{boardid}/line").HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {

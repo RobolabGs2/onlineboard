@@ -81,6 +81,28 @@ func (bl *BoardList) CreateBoard() string {
 	return boardid
 }
 
+func (bl *BoardList) LoadBoard(lines []json.RawMessage) string {
+	result := bl.CreateBoard()
+	bl.mutex.Lock()
+	board := bl.boards[result]
+	bl.mutex.Unlock()
+
+	if len(lines) == 0 {
+		return result
+	}
+
+	parent := "superline"
+	board.WriteMessages(parent, lines[0], nil)
+	for i := 1; i < len(lines); i++ {
+		var err error
+		parent, err = board.CreateLine(parent, lines[i])
+		if err != nil {
+			fmt.Println("The new created line doesn't work!!!")
+		}
+	}
+	return result
+}
+
 func (bl *BoardList) CreateLine(boardid string, parentid string, value json.RawMessage) (string, error) {
 	bl.mutex.Lock()
 	board := bl.boards[boardid]
