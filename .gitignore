@@ -19,5 +19,5 @@
 .idea/
 
 # Frontend complie results
-frontend/dist/
+dist/
 node_modules/

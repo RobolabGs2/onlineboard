@@ -1,3 +1,4 @@
+import './board.css'
 import {LineSnapshot} from "./line";
 import {Exists} from "./utli/promise";
 import {LineID, LineInBoard} from "./boardline";

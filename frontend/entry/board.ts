@@ -1,6 +1,7 @@
-import {Board} from "./board";
-import {ColorThemesPanel} from "./style";
-import {Themes} from "./themes";
+import './board.css'
+import {Board} from "../common/board";
+import {ColorThemesPanel} from "../common/style";
+import {Themes} from "../common/themes";
 
 const header = document.body.getElementsByTagName('header')[0];
 new ColorThemesPanel(header, Themes);

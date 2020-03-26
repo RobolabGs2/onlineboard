@@ -1,3 +1,5 @@
+import './boardline.css'
+
 import {Line} from "./line";
 import {ClickableSVGButton, SVGPictures} from "./utli/svg";
 

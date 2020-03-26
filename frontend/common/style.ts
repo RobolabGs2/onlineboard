@@ -1,3 +1,5 @@
+import "./themes.css"
+
 type Color = string;
 
 export class ColorTheme {
@@ -42,7 +44,7 @@ export class ColorThemesPanel {
         if (storedTheme) SetColorTheme(JSON.parse(storedTheme));
         else SetColorTheme(themes[0]);
         const article = document.createElement('article');
-        article.classList.add('color-themes-panel', 'simple-row');
+        article.classList.add('color-themes-panel');
         themes.forEach(theme => new ColorThemeView(article, theme));
         parent.append(article);
     }
