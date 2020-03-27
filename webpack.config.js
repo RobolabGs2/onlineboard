@@ -33,7 +33,7 @@ function htmlFor(chunk, tmplFolder, tmpl, resultName, demo) {
             charset: "UTF-8"
         },
         hash: !demo,
-        base: '/'
+        base: demo ? undefined : '/'
     });
 }
 
