@@ -2,6 +2,7 @@ import './boardline.css'
 
 import {Line} from "./line";
 import {ClickableSVGButton, SVGPictures} from "./utli/svg";
+import {LanguageType} from "./render";
 
 export type LineID = number | string;
 
@@ -29,6 +30,24 @@ class LineControls {
         }
         this.addButton.visible = this.delButton.visible = this.editState = this.editable(editable);
     }
+
+    clickDel() {
+        this.delButton.click()
+    }
+
+    clickAdd() {
+        this.addButton.click()
+    }
+}
+
+export interface LineInBoardActions {
+    appendLine(type: LanguageType): void
+
+    changedLine(): void
+
+    focusOnLine(inFocus: boolean): void
+
+    delete(): void
 }
 
 export class LineInBoard {
@@ -36,34 +55,34 @@ export class LineInBoard {
     private readonly section = document.createElement('section');
     private readonly controls: LineControls;
 
-    constructor(main: HTMLElement, idBoard: string, idLine: LineID, order: number,
-                onchange: (id: LineID) => void,
-                changeFocus: (id: LineID, focus: boolean) => void,
-                addLineAfter: (id: LineID, afterThis: LineInBoard) => void) {
+    constructor(main: HTMLElement, order: number,
+                actions: LineInBoardActions, storageKey: string) {
         const article = document.createElement('article');
         article.addEventListener('focusin', _ => {
             article.classList.add('focus');
-            changeFocus(idLine, true);
+            actions.focusOnLine(true);
         });
         article.addEventListener('focusout', _ => {
-            changeFocus(idLine, false);
+            actions.focusOnLine(false);
             article.classList.remove('focus');
         });
         article.tabIndex = -1;
         article.classList.add('line');
         const controlsElem = document.createElement('header');
-        const storageKey = [idBoard, idLine].join('/');
         this.controls = new LineControls(controlsElem,
             editable => {
                 const state = this.line.editable = editable;
                 localStorage.setItem(storageKey, JSON.stringify(state));
                 return state;
             },
-            () => fetch(`/board/${idBoard}/line/${idLine}`, {method: 'DELETE'}).catch(e => alert(e)),
-            () => addLineAfter(idLine, this)
+            actions.delete,
+            () => {
+                actions.appendLine(this.line.type);
+                this.edit = false;
+            }
         );
         const lineSection = document.createElement('section');
-        this.line = new Line(lineSection, onchange.bind(null, idLine));
+        this.line = new Line(lineSection, actions.changedLine);
         article.append(controlsElem, lineSection);
         this.section.append(article);
         main.append(this.section);
@@ -77,7 +96,6 @@ export class LineInBoard {
 
     set order(order: number) {
         if (this.section.style.order !== order.toString()) {
-            console.log(order);
             const tabIndex = Math.max(1, order);
             ['button', 'input', 'select', 'textarea'].forEach(selector => this.section
                 .querySelectorAll(selector)
@@ -98,5 +116,9 @@ export class LineInBoard {
 
     delete() {
         this.section.remove();
+    }
+
+    append() {
+        this.controls.clickAdd();
     }
 }

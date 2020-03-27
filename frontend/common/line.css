@@ -47,6 +47,7 @@
 
 .plaintext-render {
     font-size: large;
+    white-space: pre-wrap;
 }
 
 .output-container * {
