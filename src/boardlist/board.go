@@ -4,7 +4,9 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
+	"log"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -21,11 +23,11 @@ type Board struct {
 	mutex    sync.Mutex
 	lines    map[string]*Line
 	lineList list.List
-	connects list.List
+	channels boardChannels
 }
 
 func (board *Board) Init() *Board {
-	board.connects.Init()
+	board.channels.init()
 	board.lines = make(map[string]*Line)
 	board.lineList.Init()
 
@@ -36,21 +38,25 @@ func (board *Board) Init() *Board {
 }
 
 func (board *Board) AddConnaction(conn *websocket.Conn) *list.Element {
+
 	board.mutex.Lock()
-	elem := board.connects.PushBack(conn)
+	defer board.mutex.Unlock()
+
+	elem := board.channels.add(conn)
+
 	for _, value := range board.lines {
-		err := conn.WriteJSON(value)
+		msg, err := json.Marshal(value)
 		if err != nil {
-			fmt.Println("Bad socket!!")
+			log.Println("bad message")
 		}
+		board.channels.writeTo(elem, msg)
 	}
-	board.mutex.Unlock()
 	return elem
 }
 
-func (board *Board) RemoveConnaction(elem *list.Element, boardid string) {
+func (board *Board) RemoveConnaction(elem *list.Element) {
 	board.mutex.Lock()
-	board.connects.Remove(elem)
+	board.channels.Remove(elem)
 	board.mutex.Unlock()
 }
 
@@ -124,21 +130,19 @@ func (board *Board) unsafeSendMessages(line *Line) {
 	board.unsafeSendMessagesWithSender(line, nil)
 }
 
-func (board *Board) unsafeSendMessagesWithSender(line *Line, sender *websocket.Conn) {
-	for e := board.connects.Front(); e != nil; e = e.Next() {
-		switch val := e.Value.(type) {
-		case *websocket.Conn:
-			if val != sender {
-				err := val.WriteJSON(line)
-				if err != nil {
-					fmt.Println("Bad socket in the list!!")
-				}
-			}
-		}
+func (board *Board) unsafeSendMessagesWithSender(line *Line, sender *list.Element) {
+	t1 := time.Now()
+	msg, err := json.Marshal(line)
+
+	if err != nil {
+		return
 	}
+	board.channels.writeAllWithSender(msg, sender)
+	t2 := time.Now()
+	fmt.Printf("[time] %v", t2.Sub(t1))
 }
 
-func (board *Board) WriteMessages(lineid string, msg json.RawMessage, sender *websocket.Conn) {
+func (board *Board) WriteMessages(lineid string, msg json.RawMessage, sender *list.Element) {
 
 	board.mutex.Lock()
 	defer board.mutex.Unlock()

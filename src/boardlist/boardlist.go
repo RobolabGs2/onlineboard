@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -54,21 +55,20 @@ func (bl *BoardList) MakeEchoSocket() func(writer http.ResponseWriter, request *
 		if err != nil {
 			return
 		}
-		defer board.RemoveConnaction(elem, boardid)
+		defer board.RemoveConnaction(elem)
 
 		for {
-			_, msg, err := conn.ReadMessage()
+			var msgdata InputMessage
+			err = conn.ReadJSON(&msgdata)
+			t1 := time.Now()
+
 			if err != nil {
 				return
 			}
-			var msgdata InputMessage
-			err = json.Unmarshal(msg, &msgdata)
 
-			if err == nil {
-				board.WriteMessages(string(msgdata.Lineid), msgdata.Value, conn)
-			} else {
-				fmt.Println(err)
-			}
+			board.WriteMessages(string(msgdata.Lineid), msgdata.Value, elem)
+			t2 := time.Now()
+			fmt.Printf(", [all time] %v\n", t2.Sub(t1))
 		}
 	}
 }
