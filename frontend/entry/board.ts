@@ -1,7 +1,8 @@
 import './board.css'
-import {Board} from "../common/board";
+import {Board, StorageKeyGenerator} from "../common/board";
 import {ColorThemesPanel} from "../common/style";
 import {Themes} from "../common/themes";
+import {HttpBoardHandler} from "../common/communication/boardhandler"
 
 const header = document.body.getElementsByTagName('header')[0];
 new ColorThemesPanel(header, Themes);
@@ -11,7 +12,7 @@ if (!boardId)
     throw 'Impossible';
 const url = `ws://${window.location.host}/board/${boardId}/socket`;
 const socket = new WebSocket(url);
-const board = new Board(document.body, boardId);
+const board = new Board(document.body, new HttpBoardHandler(boardId), new StorageKeyGenerator(boardId));
 socket.addEventListener("open", function (e) {
     console.log("[open] Соединение установлено", e);
 });
@@ -24,13 +25,16 @@ footer.append(button);
 document.body.append(footer);
 
 socket.addEventListener("message", function (event) {
-    console.log(event.data);
     const data = JSON.parse(event.data);
     if (!data) {
         console.error(`WTF from server: ${event.data}`);
         return
     }
-    board.update(data);
+    try {
+        board.update(data);
+    }catch (e) {
+        console.error(`error for update '${event.data}': ${e}`);
+    }
 });
 
 socket.addEventListener("close", function (event) {

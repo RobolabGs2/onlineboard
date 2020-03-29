@@ -2,11 +2,28 @@ import './board.css'
 import {LineSnapshot} from "./line";
 import {Exists} from "./utli/promise";
 import {LineID, LineInBoard} from "./boardline";
+import {LanguageType} from "./render";
 
-class LineUpdate {
+export class LineUpdate {
     constructor(readonly id: LineID,
-                readonly value: LineSnapshot,
+                readonly value?: LineSnapshot,
                 readonly number?: number) {
+    }
+}
+
+export interface BoardActionsHandler {
+    addLine(parentId: LineID, type: LanguageType): Promise<LineID>
+
+    deleteLine(id: LineID): Promise<boolean>
+
+}
+
+export class StorageKeyGenerator {
+    constructor(private readonly boardId: string) {
+    }
+
+    keyForLine(id: LineID) {
+        return [this.boardId, id].join('/')
     }
 }
 
@@ -17,7 +34,9 @@ export class Board {
     private lastLine: LineID = "";
     private activeLine?: LineID;
 
-    constructor(parentElem: HTMLElement, private readonly id: string) {
+    constructor(parentElem: HTMLElement,
+                private readonly actionsHandler: BoardActionsHandler,
+                private readonly keyGenerator: StorageKeyGenerator) {
         this.root = document.createElement('article');
         this.root.classList.add('board');
         parentElem.appendChild(this.root);
@@ -25,8 +44,7 @@ export class Board {
                 if (ev.ctrlKey) {
                     if (ev.key === "Enter") {
                         this.activeOrLastLine()
-                            .then(({id: parentId, line: parentLine}) =>
-                                this.addLineOverHttp(parentId, parentLine)).catch(e => alert(e));
+                            .then(({id: parentId, line: parentLine}) => parentLine.append());
                     }
                 }
             }
@@ -79,48 +97,44 @@ export class Board {
         return obj.sort((a, b) => a.order - b.order).map(value => value.line.data);
     }
 
-    private addLineOverHttp(parentId: LineID, parentLine: LineInBoard) {
-        parentLine.edit = false;
-        return fetch(`/board/${(this.id)}/line`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                parent: parentId,
-                value: new LineSnapshot("", parentLine.line.type)
-            })
-        }).then(value => value.text())
+    private addLineHandler(parentId: LineID, type: LanguageType): void {
+        this.actionsHandler.addLine(parentId, type)
             .then(id => {
                 const newLine = this.lines.get(id);
                 if (!newLine)
                     throw 'Trouble this new line ' + id;
                 newLine.scroll();
                 newLine.edit = true;
-            })
+            }).catch(e => alert(e))
     }
 
     private activeOrLastLine(): Promise<{ id: LineID, line: LineInBoard }> {
-        console.log(`Active line: ${this.activeLine}`);
-        console.log(`Last line: ${this.lastLine}`);
         return Exists(this.activeLine).catch(_ => Promise.resolve(this.lastLine))
             .then(id => Exists(this.lines.get(id)).then(line => Promise.resolve({id, line})));
     }
 
     private addLine(id: LineID, number: number = Number.MAX_SAFE_INTEGER): LineInBoard {
-        let lineInBoard = new LineInBoard(this.root, this.id, id, number,
-            this.modified.add.bind(this.modified),
-            (id, focused) => {
-                if (focused) {
-                    this.activeLine = id;
-                    return
-                }
-                if (id === this.activeLine) {
-                    this.activeLine = undefined;
-                    return;
-                }
+        let lineInBoard = new LineInBoard(this.root, number,
+            {
+                appendLine: (type) => {
+                    this.addLineHandler(id, type)
+                },
+                changedLine: () => {
+                    this.modified.add(id)
+                },
+                focusOnLine: (inFocus: boolean) => {
+                    if (inFocus) {
+                        this.activeLine = id;
+                        return
+                    }
+                    if (id === this.activeLine) {
+                        this.activeLine = undefined;
+                        return;
+                    }
+                },
+                delete: () => this.actionsHandler.deleteLine(id),
             },
-            (id, line) => this.addLineOverHttp(id, line).catch(e => alert(e))
+            this.keyGenerator.keyForLine(id)
         );
         if (this.lines.size === 0) {
             this.lastLine = id;

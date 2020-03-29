@@ -21,3 +21,4 @@
 # Frontend complie results
 dist/
 node_modules/
+static/

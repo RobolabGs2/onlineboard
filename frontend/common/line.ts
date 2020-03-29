@@ -50,7 +50,7 @@ export class Line {
         if (data.type) {
             this.type = data.type;
         }
-        if (data.value)
+        if (typeof data.value === "string")
             this.value = data.value;
     }
 }
