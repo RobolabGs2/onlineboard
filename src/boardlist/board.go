@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -131,15 +130,12 @@ func (board *Board) unsafeSendMessages(line *Line) {
 }
 
 func (board *Board) unsafeSendMessagesWithSender(line *Line, sender *list.Element) {
-	t1 := time.Now()
 	msg, err := json.Marshal(line)
 
 	if err != nil {
 		return
 	}
 	board.channels.writeAllWithSender(msg, sender)
-	t2 := time.Now()
-	fmt.Printf("[time] %v", t2.Sub(t1))
 }
 
 func (board *Board) WriteMessages(lineid string, msg json.RawMessage, sender *list.Element) {
