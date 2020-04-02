@@ -12,6 +12,7 @@ export default class AsciiMathParser {
 
         this.relations = [
             {"asciimath":":=","tex":":="},
+            {"asciimath":"~","tex":"\\sim"},
             {"asciimath":":|:","tex":"\\|"},
             {"asciimath":"=>","tex":"\\Rightarrow"},
             {"asciimath":"approx","tex":"\\approx"},
@@ -140,7 +141,7 @@ export default class AsciiMathParser {
             {"asciimath":">->","tex":"\\rightarrowtail"},
             {"asciimath":"->>","tex":"\\twoheadrightarrow"},
             {"asciimath":"|->","tex":"\\mapsto"},
-            {"asciimath":"lim","tex":"\\lim"},
+            {"asciimath":"lim","tex":"\\lim\\limits"},
             {"asciimath":"Lim","tex":"\\operatorname{Lim}"},
             {"asciimath":"and","tex":"\\quad\\text{and}\\quad"},
             {"asciimath":"**","tex":"\\ast"},
@@ -217,10 +218,10 @@ export default class AsciiMathParser {
             {"asciimath":"langle","tex":"\\langle"},
             {"asciimath":"lceiling","tex":"\\lceil"},
             {"asciimath":"rceiling","tex":"\\rceil"},
-            {"asciimath":"max","tex":"\\max"},
-            {"asciimath":"min","tex":"\\min"},
-            {"asciimath":"prod","tex":"\\prod"},
-            {"asciimath":"sum","tex":"\\sum"},
+            {"asciimath":"max","tex":"\\max\\limits"},
+            {"asciimath":"min","tex":"\\min\\limits"},
+            {"asciimath":"prod","tex":"\\prod\\limits"},
+            {"asciimath":"sum","tex":"\\sum\\limits"},
         ];
         this.constants = this.constants.concat(this.relations);
 
