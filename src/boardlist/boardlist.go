@@ -24,7 +24,7 @@ type BoardList struct {
 }
 
 type InputMessage struct {
-	Lineid string          `json:"id"`
+	Lineid int             `json:"id"`
 	Value  json.RawMessage `json:"value"`
 }
 
@@ -64,7 +64,7 @@ func (bl *BoardList) MakeEchoSocket() func(writer http.ResponseWriter, request *
 				return
 			}
 
-			board.WriteMessages(string(msgdata.Lineid), msgdata.Value, elem)
+			board.WriteMessages(msgdata.Lineid, msgdata.Value, elem)
 		}
 	}
 }
@@ -87,7 +87,7 @@ func (bl *BoardList) LoadBoard(lines []json.RawMessage) string {
 		return result
 	}
 
-	parent := "superline"
+	parent := 0
 	board.WriteMessages(parent, lines[0], nil)
 	for i := 1; i < len(lines); i++ {
 		var err error
@@ -99,19 +99,19 @@ func (bl *BoardList) LoadBoard(lines []json.RawMessage) string {
 	return result
 }
 
-func (bl *BoardList) CreateLine(boardid string, parentid string, value json.RawMessage) (string, error) {
+func (bl *BoardList) CreateLine(boardid string, parentid int, value json.RawMessage) (int, error) {
 	bl.mutex.Lock()
 	board := bl.boards[boardid]
 	bl.mutex.Unlock()
 
 	if board == nil {
-		return "", fmt.Errorf("board %s does not exist", boardid)
+		return 0, fmt.Errorf("board %s does not exist", boardid)
 	}
 
 	return board.CreateLine(parentid, value)
 }
 
-func (bl *BoardList) DeleteLine(boardid string, lineid string) error {
+func (bl *BoardList) DeleteLine(boardid string, lineid int) error {
 	bl.mutex.Lock()
 	board := bl.boards[boardid]
 	bl.mutex.Unlock()

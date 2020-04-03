@@ -16,7 +16,7 @@ export class HttpBoardHandler implements BoardActionsHandler {
                 parent: parentId,
                 value: new LineSnapshot("", type)
             })
-        }).then(value => value.text()) as Promise<LineID>
+        }).then(value => value.text()).then(text => Number.parseInt(text))
     }
 
     deleteLine(id: LineID): Promise<boolean> {

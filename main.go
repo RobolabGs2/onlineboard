@@ -6,18 +6,15 @@ import (
 	"log"
 	"net/http"
 	"onlineboard/src/boardlist"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
 )
 
-type CreateMessage struct {
-	Parent string          `json:"parent"`
+type CreateLineMessage struct {
+	Parent int             `json:"parent"`
 	Value  json.RawMessage `json:"value"`
-}
-
-type MoveMessage struct {
-	Parent string `json:"parent"`
 }
 
 func main() {
@@ -72,21 +69,20 @@ func main() {
 				return
 			}
 
-			var msg CreateMessage
+			var msg CreateLineMessage
 			err = json.Unmarshal(b, &msg)
 			if err != nil {
 				http.Error(w, err.Error(), 500)
 				return
 			}
 
-			output, err := bl.CreateLine(mux.Vars(r)["boardid"], string(msg.Parent), msg.Value)
+			output, err := bl.CreateLine(mux.Vars(r)["boardid"], msg.Parent, msg.Value)
 
 			if err != nil {
 				http.Error(w, err.Error(), 500)
 				return
 			}
-
-			w.Write([]byte(output))
+			w.Write([]byte(strconv.Itoa(output)))
 		})
 
 	r.Methods("DELETE").Path("/board/{boardid}/line/{lineid}").HandlerFunc(
@@ -94,9 +90,15 @@ func main() {
 
 			mapa := mux.Vars(r)
 			boardid := mapa["boardid"]
-			lineid := mapa["lineid"]
-			err := bl.DeleteLine(boardid, lineid)
+			strlineid := mapa["lineid"]
 
+			lineid, err := strconv.Atoi(strlineid)
+			if err != nil {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+
+			err = bl.DeleteLine(boardid, lineid)
 			if err != nil {
 				http.Error(w, err.Error(), 400)
 				return

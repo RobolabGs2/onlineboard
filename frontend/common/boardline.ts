@@ -4,7 +4,7 @@ import {Line} from "./line";
 import {ClickableSVGButton, SVGPictures} from "./utli/svg";
 import {LanguageType} from "./render";
 
-export type LineID = number | string;
+export type LineID = number;
 
 class LineControls {
     private readonly delButton: ClickableSVGButton;
