@@ -4,6 +4,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const {CleanWebpackPlugin} = require('clean-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
+const FaviconsWebpackPlugin = require('favicons-webpack-plugin');
 
 function getFilesFromPath(path, extension) {
     let dir = fs.readdirSync(path);
@@ -24,36 +25,40 @@ const definePaths = ((root, demo) => {
 });
 
 function htmlFor(chunk, tmplFolder, tmpl, resultName, demo) {
+    const preview_path = "https://onlineboard.xyz/images/preview.png";
     return new HtmlWebpackPlugin({
         template: `${tmplFolder}/${tmpl}.ejs`,
         chunks: [chunk],
         filename: `${resultName}.html`,
-        favicon: "./frontend/assets/images/icon32x32.ico",
+        favicon: "./frontend/assets/images/favicon.ico",
         meta: {
             viewport: "width=device-width",
             charset: "UTF-8",
             keywords: "onlineboard онлайн доска",
             description: "OnlineBoard - онлайн доска с возможностью совместного редактирования и поддержкой различных математических синтаксисов.",
+            image_src: {rel: "image_src", href: preview_path},
             "og:type": { property: "og:type", content: "website"},
             "og:site_name": { property: "og:site_name", content: "OnlineBoard"},
             "og:description": { 
                 property: "og:description", 
                 content: "OnlineBoard - онлайн доска с возможностью совместного редактирования и поддержкой различных математических синтаксисов."
             },
-            "og:image": { property: "og:image", content: "/images/preview.png"},
+            "og:image": { property: "og:image", content: preview_path},
             "og:image:width": { property: "og:image:width", content: "968"},
             "og:image:height": { property: "og:image:height", content: "504"},
             "og:url": { property: "og:url", content: "https://onlineboard.xyz/"},
             "og:locale": { property: "og:locale", content: "ru_RU"},
 
-
             "twitter:card": "summary_large_image",
             "twitter:title": "OnlineBoard",
             "twitter:description": "OnlineBoard - онлайн доска с возможностью совместного редактирования и поддержкой различных математических синтаксисов.",
-            "twitter:image:src": "/images/preview.png",
-            "twitter:url": "http://example.com/page.html",
-            "twitter:domain": "https://onlineboard.xyz/",
+            "twitter:image:src": preview_path,
+            "twitter:url": "https://onlineboard.xyz/",
+            "twitter:domain": "onlineboard.xyz",
             "twitter:site": "OnlineBoard",
+
+            "msapplication-TileImage": preview_path,
+            "msapplication-TileColor": "#2a2c33"
         },
         hash: !demo,
         base: demo ? undefined : '/'
@@ -78,7 +83,8 @@ module.exports = (env) => {
             new CleanWebpackPlugin(),
             new MiniCssExtractPlugin(),
                 new CopyPlugin([
-                  { from: './frontend/assets/', to: '' }])
+                    { from: './frontend/assets/', to: '' }
+                ])
         ].concat(entries.map(chunk => htmlForChunk(paths.htmlTemplates, isDemo, chunk))),
         devtool: 'inline-source-map',
         module: {
