@@ -1,5 +1,5 @@
 .board {
-    margin-bottom: 128px;
+    margin-bottom: 90vh;
     display: flex;
     flex-direction: column;
 }
