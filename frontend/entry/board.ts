@@ -10,7 +10,8 @@ new ColorThemesPanel(header, Themes);
 let boardId = window.location.pathname.split("/").pop();
 if (!boardId)
     throw 'Impossible';
-const url = `ws://${window.location.host}/board/${boardId}/socket`;
+let swprotocol = window.location.protocol == "https:" ? "wss" : "ws";
+const url = `${swprotocol}://${window.location.host}/board/${boardId}/socket`;
 const socket = new WebSocket(url);
 const board = new Board(document.body, new HttpBoardHandler(boardId), new StorageKeyGenerator(boardId));
 socket.addEventListener("open", function (e) {

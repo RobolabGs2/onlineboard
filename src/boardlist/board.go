@@ -4,53 +4,65 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
+	"log"
 	"sync"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
 type Line struct {
-	Id     string          `json:"id"`
+	Id     int             `json:"id"`
 	Value  json.RawMessage `json:"value"`
 	Number int             `json:"number"`
 	elem   *list.Element
 }
 
 type Board struct {
-	mutex    sync.Mutex
-	lines    map[string]*Line
-	lineList list.List
-	connects list.List
+	mutex       sync.Mutex
+	lines       map[int]*Line
+	lineList    list.List
+	channels    boardChannels
+	lineCounter int
+}
+
+func (board *Board) pushLine(line *Line) *Line {
+	line.Id = board.lineCounter
+	board.lines[board.lineCounter] = line
+	board.lineCounter++
+	return line
 }
 
 func (board *Board) Init() *Board {
-	board.connects.Init()
-	board.lines = make(map[string]*Line)
+	board.channels.init()
+	board.lines = make(map[int]*Line)
 	board.lineList.Init()
+	board.lineCounter = 0
 
-	line := &Line{Id: "superline", Number: 0}
-	board.lines["superline"] = line
+	line := board.pushLine(&Line{Number: 0})
 	line.elem = board.lineList.PushBack(line)
 	return board
 }
 
 func (board *Board) AddConnaction(conn *websocket.Conn) *list.Element {
+
 	board.mutex.Lock()
-	elem := board.connects.PushBack(conn)
+	defer board.mutex.Unlock()
+
+	elem := board.channels.add(conn)
+
 	for _, value := range board.lines {
-		err := conn.WriteJSON(value)
+		msg, err := json.Marshal(value)
 		if err != nil {
-			fmt.Println("Bad socket!!")
+			log.Println("bad message")
 		}
+		board.channels.writeTo(elem, msg)
 	}
-	board.mutex.Unlock()
 	return elem
 }
 
-func (board *Board) RemoveConnaction(elem *list.Element, boardid string) {
+func (board *Board) RemoveConnaction(elem *list.Element) {
 	board.mutex.Lock()
-	board.connects.Remove(elem)
+	board.channels.Remove(elem)
 	board.mutex.Unlock()
 }
 
@@ -76,19 +88,17 @@ func (board *Board) recursiveReleaseSpace(pred *Line, nextElem *list.Element) in
 	return 0
 }
 
-func (board *Board) CreateLine(parentid string, value json.RawMessage) (string, error) {
+func (board *Board) CreateLine(parentid int, value json.RawMessage) (int, error) {
 	board.mutex.Lock()
 
 	parent := board.lines[parentid]
 	if parent == nil {
 		board.mutex.Unlock()
-		return "", fmt.Errorf("line %s does not exist", parentid)
+		return 0, fmt.Errorf("line %s does not exist", parentid)
 	}
 
-	line := &Line{Id: uuid.New().String(), Value: value}
-	board.lines[line.Id] = line
+	line := board.pushLine(&Line{Value: value})
 	line.elem = board.lineList.InsertAfter(line, parent.elem)
-
 	line.Number = board.recursiveReleaseSpace(parent, line.elem.Next())
 
 	board.unsafeSendMessages(line)
@@ -97,13 +107,13 @@ func (board *Board) CreateLine(parentid string, value json.RawMessage) (string, 
 	return line.Id, nil
 }
 
-func (board *Board) DeleteLine(lineid string) error {
+func (board *Board) DeleteLine(lineid int) error {
 	board.mutex.Lock()
 	defer board.mutex.Unlock()
 
 	line := board.lines[lineid]
 	if line == nil {
-		return fmt.Errorf("line %s does not exist", lineid)
+		return fmt.Errorf("line %d does not exist", lineid)
 	}
 
 	if board.lineList.Len() == 1 {
@@ -124,21 +134,16 @@ func (board *Board) unsafeSendMessages(line *Line) {
 	board.unsafeSendMessagesWithSender(line, nil)
 }
 
-func (board *Board) unsafeSendMessagesWithSender(line *Line, sender *websocket.Conn) {
-	for e := board.connects.Front(); e != nil; e = e.Next() {
-		switch val := e.Value.(type) {
-		case *websocket.Conn:
-			if val != sender {
-				err := val.WriteJSON(line)
-				if err != nil {
-					fmt.Println("Bad socket in the list!!")
-				}
-			}
-		}
+func (board *Board) unsafeSendMessagesWithSender(line *Line, sender *list.Element) {
+	msg, err := json.Marshal(line)
+
+	if err != nil {
+		return
 	}
+	board.channels.writeAllWithSender(msg, sender)
 }
 
-func (board *Board) WriteMessages(lineid string, msg json.RawMessage, sender *websocket.Conn) {
+func (board *Board) WriteMessages(lineid int, msg json.RawMessage, sender *list.Element) {
 
 	board.mutex.Lock()
 	defer board.mutex.Unlock()
