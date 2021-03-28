@@ -29,7 +29,7 @@ export class StorageKeyGenerator {
 
 export class Board {
     private lines = new Map<LineID, LineInBoard>();
-    private readonly root: HTMLElement;
+    public readonly root: HTMLElement;
     private modified = new Set<LineID>();
     private lastLine: LineID = "";
     private activeLine?: LineID;
